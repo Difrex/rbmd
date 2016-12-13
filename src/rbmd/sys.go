@@ -7,6 +7,7 @@ import (
 	"log"
 	"strings"
 	"regexp"
+	"time"
 )
 
 
@@ -23,7 +24,6 @@ type Node struct {
 	Ip IPs
 	Updated int
 	Mounts []Mount
-	Zk string
 }
 
 // Mount struct
@@ -41,9 +41,8 @@ type IPs struct {
 	V6 []string
 }
 
-
 // Parse /proc/mounts and get RBD mounts
-func GetMounts() ([]Mount, error) {
+func GetMounts() []Mount {
 	var mounts []Mount
 	m, err := ioutil.ReadFile("/proc/mounts")
 	if err != nil {
@@ -69,7 +68,7 @@ func GetMounts() ([]Mount, error) {
 		}
 	}
 
-	return mounts, err
+	return mounts
 }
 
 // Exclude 127.0.0.1 
@@ -114,4 +113,17 @@ func GetMyIPs() IPs {
 	ipaddr.V6 = v6
 
 	return ipaddr
+}
+
+
+// Return Node struct
+func GetNodeState(fqdn string) Node {
+	var n Node
+
+	n.Node = fqdn
+	n.Ip = GetMyIPs()
+	n.Updated = int(time.Now().Unix())
+	n.Mounts = GetMounts()
+
+	return n
 }
