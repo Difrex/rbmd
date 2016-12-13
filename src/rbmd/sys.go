@@ -3,16 +3,24 @@ package rbmd
 import (
 	// "syscall"
 	"io/ioutil"
+	"net"
 	"log"
 	"strings"
 	"regexp"
 )
 
 
+// Cluster status struct
+type ClusterStatus struct {
+	Quorum []Node
+	Health string
+	Zk string
+}
+
 // Node status struct
 type Node struct {
 	Node string
-	Ip string
+	Ip IPs
 	Updated int
 	Mounts []Mount
 	Zk string
@@ -27,7 +35,14 @@ type Mount struct {
 	Block string
 }
 
+// IP addresses
+type IPs struct {
+	V4 []string
+	V6 []string
+}
 
+
+// Parse /proc/mounts and get RBD mounts
 func GetMounts() ([]Mount, error) {
 	var mounts []Mount
 	m, err := ioutil.ReadFile("/proc/mounts")
@@ -51,8 +66,52 @@ func GetMounts() ([]Mount, error) {
 				pool,
 				p[len(p) -1],
 			})
-		}	
+		}
 	}
 
 	return mounts, err
+}
+
+// Exclude 127.0.0.1 
+func GetMyIPs() IPs {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		log.Print("[ERROR] ", err)
+	}
+
+	var ipaddr IPs
+	var v4 []string
+	var v6 []string
+	
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			log.Print("[ERROR] ", err)
+		}
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+                ip = v.IP
+			case *net.IPAddr:
+                ip = v.IP
+			}
+			if ip.String() != "127.0.0.1" && ip.String() != "::1" {
+				match, err := regexp.MatchString("^.*::.*$", ip.String())
+				if err != nil {
+					log.Print("[ERROR] ", err)
+				}
+				if match {
+					v6 = append(v6, ip.String())
+				} else {
+					v4 = append(v4, ip.String())
+				}
+			}
+		}
+	}
+
+	ipaddr.V4 = v4
+	ipaddr.V6 = v6
+
+	return ipaddr
 }
