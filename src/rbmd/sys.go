@@ -78,10 +78,8 @@ func GetMyIPs() IPs {
 		log.Print("[ERROR] ", err)
 	}
 
-	var ipaddr IPs
 	var v4 []string
 	var v6 []string
-	
 	for _, i := range ifaces {
 		addrs, err := i.Addrs()
 		if err != nil {
@@ -109,10 +107,10 @@ func GetMyIPs() IPs {
 		}
 	}
 
-	ipaddr.V4 = v4
-	ipaddr.V6 = v6
-
-	return ipaddr
+	return IPs{
+		v4,
+		v6,
+	}
 }
 
 

@@ -10,7 +10,7 @@ import (
 func (conf Zk) InitConnection() (*zk.Conn, error) {
 	conn, _, err := zk.Connect(conf.Hosts, time.Second)
 	if err != nil {
-		log.Fatal(err)
+		log.Print("[ERROR] ", err)
 	}
 
 	return conn, err
