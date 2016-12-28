@@ -5,11 +5,13 @@ import (
 	"strings"
 )
 
+//ZooNode zookeeper node
 type ZooNode struct {
 	Path string
 	Conn *zk.Conn
 }
 
+//EnsureZooPath create zookeeper path  
 func (z ZooNode) EnsureZooPath(node string) (string, error) {
 	flag := int32(0)
 	acl := zk.WorldACL(zk.PermAll)

@@ -6,10 +6,11 @@ import (
 	"os"
 	"strings"
 	"time"
-	_ "syscall"
+	// "syscall"
 	"encoding/json"
 )
 
+//Run -- start main loop
 func Run(zoo Zk) {
 	connection, err := zoo.InitConnection()
 	if err != nil {
@@ -18,50 +19,37 @@ func Run(zoo Zk) {
 	fqdn, err := os.Hostname()
 
 	z := ZooNode{zoo.Path, connection}
-	node, err := z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
 
 	for {
+		node, err := z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
+		if err != nil {
+			log.Print("[ERROR] ", err)
+		}
 		go z.UpdateState(node, fqdn)
-		go z.UpdateLeader()
+		go z.FindLeader(fqdn)
 		time.Sleep(time.Duration(zoo.Tick) * time.Second)
 	}
 }
 
-
-func (z ZooNode) UpdateState(node string, fqdn string) {
+//UpdateState -- update node status
+func (z ZooNode) UpdateState(zkPath string, fqdn string) {
 	state := GetNodeState(fqdn)
 
-	state_json, err := json.Marshal(state)
+	stateJSON, err := json.Marshal(state)
 	if err != nil {
 		log.Print("[ERROR] Failed encoding json ", err)
 	}
 
-	_, zo_stat, err := z.Conn.Get(node)
+	_, zoStat, err := z.Conn.Get(zkPath)
 	if err != nil {
 		log.Print("[ERROR] ", err)
 	}
 
 	log.Print("[DEBUG] ", "Updating state")
-	zo_stat, err = z.Conn.Set(node, state_json, zo_stat.Version)
-}
-
-
-func (z ZooNode) UpdateLeader() {
-	z.EnsureZooPath("log/leader")
-}
-
-
-func (z ZooNode) FindLeader() {
-	children, _, _, err := z.Conn.ChildrenW(strings.Join([]string{z.Path, "/cluster"}, ""))
+	zoStat, err = z.Conn.Set(zkPath, stateJSON, zoStat.Version)
 	if err != nil {
 		log.Print("[ERROR] ", err)
 	}
-
-	for {
-		for _, child := range children {
-			log.Print("[DEBUG] ", child)
-		}
-	}
-	
 }
+
 

@@ -11,37 +11,37 @@ import (
 )
 
 
-// Cluster status struct
+//ClusterStatus Quorum status struct
 type ClusterStatus struct {
-	Quorum []Node
-	Health string
-	Zk string
+	Quorum []Node `json:"quorum"`
+	Health string `json:"health"`
+	Zk string     `json:"zk"`
 }
 
-// Node status struct
+//Node Node status struct
 type Node struct {
-	Node string
-	Ip IPs
-	Updated int
-	Mounts []Mount
+	Node string     `json:"node"`
+	IP IPs          `json:"ip"`
+	Updated int64   `json:"updated"`
+	Mounts []Mount  `json:"mounts"`
 }
 
 // Mount struct
 type Mount struct {
-	Mountpoint string
-	Mountopts string
-	Fstype string
-	Pool string
-	Block string
+	Mountpoint string `json:"mountpoint"`
+	Mountopts string  `json:"mountopts"`
+	Fstype string     `json:"fstype"`
+	Pool string       `json:"pool"`
+	Block string      `json:"block"`
 }
 
-// IP addresses
+//IPs IP addresses
 type IPs struct {
-	V4 []string
-	V6 []string
+	V4 []string `json:"v4"`
+	V6 []string `json:"v6"`
 }
 
-// Parse /proc/mounts and get RBD mounts
+//GetMounts Parse /proc/mounts and get RBD mounts
 func GetMounts() []Mount {
 	var mounts []Mount
 	m, err := ioutil.ReadFile("/proc/mounts")
@@ -51,7 +51,7 @@ func GetMounts() []Mount {
 
 	for _, line := range strings.Split(string(m), "\n") {
 		mount := strings.Split(line, " ")
-		match, err := regexp.MatchString("^(/dev/rbd).*$", mount[0])
+		match, err := regexp.MatchString("^(/dev/sd).*$", mount[0])
 		if err != nil {
 			log.Print("[ERROR] ", err)
 		}
@@ -71,7 +71,7 @@ func GetMounts() []Mount {
 	return mounts
 }
 
-// Exclude 127.0.0.1 
+//GetMyIPs Exclude 127.0.0.1 
 func GetMyIPs() IPs {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -94,7 +94,7 @@ func GetMyIPs() IPs {
                 ip = v.IP
 			}
 			if ip.String() != "127.0.0.1" && ip.String() != "::1" {
-				match, err := regexp.MatchString("^.*::.*$", ip.String())
+				match, err := regexp.MatchString("^.*:.*$", ip.String())
 				if err != nil {
 					log.Print("[ERROR] ", err)
 				}
@@ -114,13 +114,13 @@ func GetMyIPs() IPs {
 }
 
 
-// Return Node struct
+//GetNodeState Return Node struct
 func GetNodeState(fqdn string) Node {
 	var n Node
 
 	n.Node = fqdn
-	n.Ip = GetMyIPs()
-	n.Updated = int(time.Now().Unix())
+	n.IP = GetMyIPs()
+	n.Updated = time.Now().Unix()
 	n.Mounts = GetMounts()
 
 	return n
