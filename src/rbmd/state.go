@@ -11,7 +11,7 @@ import (
 )
 
 //Run -- start main loop
-func Run(zoo Zk) {
+func Run(zoo Zk, s ServerConf) {
 	connection, err := zoo.InitConnection()
 	if err != nil {
 		log.Fatal(err)
@@ -19,6 +19,9 @@ func Run(zoo Zk) {
 	fqdn, err := os.Hostname()
 
 	z := ZooNode{zoo.Path, connection}
+
+	// Serve HTTP API
+	go s.ServeHTTP(z, fqdn)
 
 	for {
 		node, err := z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
@@ -52,4 +55,14 @@ func (z ZooNode) UpdateState(zkPath string, fqdn string) {
 	}
 }
 
+//GetState return cluster status
+func (z ZooNode) GetState() []byte {
+	quorumStatePath := strings.Join([]string{z.Path, "/log/quorum"}, "")
 
+	stateJSON, _, err := z.Conn.Get(quorumStatePath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return stateJSON
+}
