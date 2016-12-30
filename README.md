@@ -18,6 +18,8 @@ RBD mount wrapper cluster
             - [Example](#example)
         - [POST /mount](#post-mount)
         - [POST /umount](#post-umount)
+- [AUTHORS](#authors)
+- [LICENSE](#license)
 
 <!-- markdown-toc end -->
 
@@ -114,3 +116,11 @@ Accept JSON. Not implemented yet.
 ### POST /umount
 
 Accept JSON. Not implemented yet.
+
+# AUTHORS
+
+Denis Zheleztsov <difrex.punk@gmail.com>
+
+# LICENSE
+
+GPL version 3 see LICENSE
