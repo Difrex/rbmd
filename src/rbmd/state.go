@@ -14,11 +14,16 @@ import (
 func Run(zoo Zk, s ServerConf) {
 	connection, err := zoo.InitConnection()
 	if err != nil {
-		log.Fatal(err)
+		log.Panic(err)
 	}
 	fqdn, err := os.Hostname()
 
 	z := ZooNode{zoo.Path, connection}
+
+	// Create Zk nodes tree
+	z.EnsureZooPath("log/quorum")
+	z.EnsureZooPath("log/health")
+	z.EnsureZooPath("log/leader")
 
 	// Serve HTTP API
 	go s.ServeHTTP(z, fqdn)
@@ -26,7 +31,7 @@ func Run(zoo Zk, s ServerConf) {
 	for {
 		node, err := z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
 		if err != nil {
-			log.Print("[ERROR] ", err)
+			log.Panic("[ERROR] ", err)
 		}
 		go z.UpdateState(node, fqdn)
 		go z.FindLeader(fqdn)
@@ -36,6 +41,7 @@ func Run(zoo Zk, s ServerConf) {
 
 //UpdateState -- update node status
 func (z ZooNode) UpdateState(zkPath string, fqdn string) {
+	z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
 	state := GetNodeState(fqdn)
 
 	stateJSON, err := json.Marshal(state)
