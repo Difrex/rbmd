@@ -104,9 +104,9 @@ Return JSON of node stats
 Return string with quorum health check result
 
 Statuses:
-  * alive. Match regexp: ^alive\.$ -- all is good
-  * resizing. Match regexp: ^resizing\. (.+) -- One or more nodes goind down
-  * deadly. Match regexp: ^deadly\. (.+) -- One or more nodes is down and they has mapped images. Return string with \n
+  * alive. Match regexp: ```^alive\.$``` -- all is good
+  * resizing. Match regexp: ```^resizing\. (.+)``` -- One or more nodes goind down
+  * deadly. Match regexp: ```^deadly\. (.+)``` -- One or more nodes is down and they has mapped images. Return string with \n
   
 
 #### Example
