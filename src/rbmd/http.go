@@ -40,7 +40,11 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 
 	// Mount volume. Accept JSON. Return JSON.
 	http.HandleFunc("/mount", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Not implemented yet."))
+		state, err := json.Marshal(MountState{"FAIL", "Not implemented yet"})
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.Write(state)
 	})
 
 	// Umount volume. Accept JSON. Return JSON.
@@ -57,7 +61,6 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 
 //Writer ws
 type Writer struct {
-	Message []byte
 	Upgrader websocket.Upgrader
 	z ZooNode
 }
@@ -70,8 +73,6 @@ func (wr Writer) WriteStatusWs(w http.ResponseWriter, r *http.Request) {
 		log.Print("[Ws ERROR] Upgrade: ", err)
 	}
 
-	defer c.Close()
-
 	mt, _, err := c.ReadMessage()
 	if err != nil {
 		log.Print("[Ws ERROR] Read error: ", err)
@@ -79,29 +80,32 @@ func (wr Writer) WriteStatusWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	for {	
-		err = c.WriteMessage(mt, wr.z.GetState())
-		if err != nil {
-			log.Print("[Ws ERROR] Write err: ", err)
-			break
+	go func() {
+		for {
+			err = c.WriteMessage(mt, wr.z.GetState())
+			if err != nil {
+				log.Print("[Ws ERROR] Write err: ", err)
+				defer c.Close()
+				break
+			}
+			time.Sleep(time.Duration(1) * time.Second)
 		}
-		time.Sleep(time.Duration(1) * time.Second)
-	}
+	}()
 }
 
 //ServeWebSockets start websockets server
 func (s ServerConf) ServeWebSockets(z ZooNode) {
 
 	var wsUpgrader = websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
+		ReadBufferSize:  4096,
+		WriteBufferSize: 4096,
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 
-	go http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		Writer{z.GetState(), wsUpgrader, z}.WriteStatusWs(w, r)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		Writer{wsUpgrader, z}.WriteStatusWs(w, r)
 	})
 
 	server := &http.Server{

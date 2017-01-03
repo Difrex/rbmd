@@ -51,7 +51,7 @@ func GetMounts() []Mount {
 
 	for _, line := range strings.Split(string(m), "\n") {
 		mount := strings.Split(line, " ")
-		match, err := regexp.MatchString("^(/dev/sd).*$", mount[0])
+		match, err := regexp.MatchString("^(/dev/rbd).*$", mount[0])
 		if err != nil {
 			log.Print("[ERROR] ", err)
 		}
@@ -124,4 +124,44 @@ func GetNodeState(fqdn string) Node {
 	n.Mounts = GetMounts()
 
 	return n
+}
+
+
+//MountState status of mount/umount
+type MountState struct {
+	State string   `json:"state"`
+	Message string `json:"message"`
+}
+
+//RBDDevice rbd block device struct
+type RBDDevice struct {
+	Node string       `json:"node"`
+	Pool string       `json:"pool"`
+	Block string      `json:"block"`
+	Mountpoint string `json:"mountpoint"`
+	Mountopts string  `json:"mountopts"`
+	Fstype string     `json:"fstype"`
+}
+
+//MapDevice map rbd block device
+func (r RBDDevice) MapDevice() error {
+	// image := strings.Join([]string{r.Pool, r.Block}, "/")
+	
+	
+	return nil
+}
+
+//UnmapDevice unmap rbd block device
+func (r RBDDevice) UnmapDevice() error {
+	return nil
+}
+
+//MountFS mount file system
+func (r RBDDevice) MountFS() error {
+	return nil
+}
+
+//UnmountFS unmount file system
+func (r RBDDevice) UnmountFS() error {
+	return nil
 }
