@@ -37,6 +37,8 @@ Usage of ./rbmd:
     	HTTP API listen address (default "0.0.0.0:9076")
   -tick int
     	Tick time loop (default 5)
+  -ws string
+    	Websockets listen address (default "0.0.0.0:7690")
   -zk string
     	Zookeeper servers comma separated (default "127.0.0.1:2181")
   -zkPath string
@@ -58,23 +60,23 @@ Return JSON of quorum status
 ```
  curl 127.0.0.1:9076/status | jq
 {
-  "quorum": [
-    {
-      "node": "node.example.org",
+  "quorum": {
+    "node.example.com": {
+      "node": "node.example.com",
       "ip": {
         "v4": [
           "10.0.3.1"
         ],
         "v6": [
-          "fe80::108d:fcff:fe77:3df6"
+          "fe80::f869:d0ff:fea3:3c0a"
         ]
       },
-      "updated": 1483095334,
+      "updated": 1483428452,
       "mounts": null
     }
-  ],
-  "leader": "node.example.org",
-  "health": "alive."
+  },
+  "health": "alive.",
+  "leader": "node.example.com"
 }
 ```
 
