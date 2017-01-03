@@ -24,16 +24,18 @@ func Run(zoo Zk, s ServerConf) {
 	z.EnsureZooPath("log/quorum")
 	z.EnsureZooPath("log/health")
 	z.EnsureZooPath("log/leader")
+	z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
 
 	// Serve HTTP API
 	go s.ServeHTTP(z, fqdn)
+	go s.ServeWebSockets(z)
 
 	for {
 		node, err := z.EnsureZooPath(strings.Join([]string{"cluster/", fqdn, "/state"}, ""))
 		if err != nil {
 			log.Panic("[ERROR] ", err)
 		}
-		go z.UpdateState(node, fqdn)
+		z.UpdateState(node, fqdn)
 		go z.FindLeader(fqdn)
 		time.Sleep(time.Duration(zoo.Tick) * time.Second)
 	}
@@ -61,6 +63,14 @@ func (z ZooNode) UpdateState(zkPath string, fqdn string) {
 	}
 }
 
+
+//jsonState HTTP API quorum status
+type jsonState struct {
+	Quorum map[string]Node `json:"quorum"`
+    Health string          `json:"health"`
+	Leader string          `json:"leader"`
+}
+
 //GetState return cluster status
 func (z ZooNode) GetState() []byte {
 	quorumStatePath := strings.Join([]string{z.Path, "/log/quorum"}, "")
@@ -70,5 +80,21 @@ func (z ZooNode) GetState() []byte {
 		log.Fatal(err)
 	}
 
-	return stateJSON
+	var state Quorum
+	json.Unmarshal(stateJSON, &state)
+
+	node := make(map[string]Node)
+
+	for _, n := range state.Quorum {
+		node[n.Node] = n
+	}
+
+	retState := jsonState{node, state.Health, state.Leader}
+
+	js, err := json.Marshal(retState)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return js
 }
