@@ -1,14 +1,11 @@
-# RBMD
-
 RBD mount wrapper cluster
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
 **Table of Contents**
 
-- [RBMD](#rbmd)
-    - [Dependencies](#dependencies)
-    - [Usage](#usage)
-        - [Example](#example)
+- [-](#-)
+- [Usage](#usage)
+    - [Example](#example)
     - [API](#api)
         - [GET /status](#get-status)
             - [Example](#example)
@@ -119,7 +116,39 @@ alive.
 
 ### POST /mount
 
-Accept JSON. Not implemented yet.
+Map rbd image and mount it
+
+#### Example
+
+Accept JSON
+```
+{
+    "node": "node.example.com",
+    "pool": "web",
+    "block": "pictures",
+    "mountpoint": "/var/www/pictures",
+    "mountopts": "noatime,nodiratime",
+    "fstype": "xfs"
+}
+```
+
+Return JSON.
+
+On success
+```
+{
+    "state": "OK",
+    "message": "OK"
+}
+```
+
+On failure
+```
+{
+    "state": "FAIL"
+    "message": "mount: /dev/null not a block device"
+}
+```
 
 ### POST /umount
 
