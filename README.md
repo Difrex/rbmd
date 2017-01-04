@@ -125,7 +125,7 @@ Accept JSON
 {
     "node": "node.example.com",
     "pool": "web",
-    "block": "pictures",
+    "image": "pictures",
     "mountpoint": "/var/www/pictures",
     "mountopts": "noatime,nodiratime",
     "fstype": "xfs"
