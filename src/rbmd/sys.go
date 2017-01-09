@@ -1,15 +1,18 @@
 package rbmd
 
 import (
-	// "syscall"
+	"syscall"
 	"io/ioutil"
 	"net"
 	"log"
 	"strings"
 	"regexp"
 	"time"
-)
+	"os/exec"
+	"bytes"
 
+	// "fmt"
+)
 
 //ClusterStatus Quorum status struct
 type ClusterStatus struct {
@@ -32,6 +35,7 @@ type Mount struct {
 	Mountopts string  `json:"mountopts"`
 	Fstype string     `json:"fstype"`
 	Pool string       `json:"pool"`
+	Image string      `json:"image"`
 	Block string      `json:"block"`
 }
 
@@ -57,18 +61,39 @@ func GetMounts() []Mount {
 		}
 		if match {
 			p := strings.Split(mount[0], "/")
-			pool := p[len(p) - 2]
+			pool, image := GetRBDPool(p[len(p) - 1])
 			mounts = append(mounts, Mount{
 				mount[1],
 				mount[3],
 				mount[2],
 				pool,
-				p[len(p) -1],
+				image,
+				p[len(p) - 1],
 			})
 		}
 	}
 
 	return mounts
+}
+
+//GetRBDPool get pool from rbd showmapped
+func GetRBDPool(device string) (string, string) {
+	r := regexp.MustCompile(`^.*(\d+)$`)
+	rbd := r.FindStringSubmatch(device)
+
+	poolNamePath := strings.Join([]string{"/sys/bus/rbd/devices/", rbd[1], "/pool"}, "")
+	imageNamePath := strings.Join([]string{"/sys/bus/rbd/devices/", rbd[1], "/name"}, "")
+
+	pool, err := ioutil.ReadFile(poolNamePath)
+	if err != nil {
+		log.Fatal("[ERROR] Read failure ", err)
+	}
+	image, err := ioutil.ReadFile(imageNamePath)
+	if err != nil {
+		log.Fatal("[ERROR] Read failure ", err)
+	}
+
+	return string(pool), string(image)
 }
 
 //GetMyIPs Exclude 127.0.0.1 
@@ -137,6 +162,7 @@ type MountState struct {
 type RBDDevice struct {
 	Node string       `json:"node"`
 	Pool string       `json:"pool"`
+	Image string      `json:"image"`
 	Block string      `json:"block"`
 	Mountpoint string `json:"mountpoint"`
 	Mountopts string  `json:"mountopts"`
@@ -144,24 +170,76 @@ type RBDDevice struct {
 }
 
 //MapDevice map rbd block device
-func (r RBDDevice) MapDevice() error {
-	// image := strings.Join([]string{r.Pool, r.Block}, "/")
+func (r RBDDevice) MapDevice() ([]byte, error) {
+	image := strings.Join([]string{r.Pool, r.Image}, "/")
+	log.Print("[DEBUG] Mapping ", image)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
 	
+	cmd := exec.Command("rbd", "map", image)
+
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return []byte(stderr.String()) , err
+	}
+
+	o := stdout.String()
+
+	if strings.HasSuffix(o, "\n") {
+        o = o[ :len(o) - 1]
+    }
 	
-	return nil
+	return []byte(o), nil
 }
 
 //UnmapDevice unmap rbd block device
-func (r RBDDevice) UnmapDevice() error {
-	return nil
+func (r RBDDevice) UnmapDevice() ([]byte, error) {
+	log.Print("[DEBUG] Umapping ", r.Block)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	
+	cmd := exec.Command("rbd", "unmap", strings.Join([]string{"/dev/", r.Block}, ""))
+
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return []byte(stderr.String()) , err
+	}
+
+	o := stdout.String()
+
+	if strings.HasSuffix(o, "\n") {
+        o = o[ :len(o) - 1]
+    }
+	
+	return []byte(o), nil
 }
 
 //MountFS mount file system
-func (r RBDDevice) MountFS() error {
+func (r RBDDevice) MountFS(device string) error {
+	err := syscall.Mount(device, r.Mountpoint, r.Fstype, 0, r.Mountopts)
+	if err != nil {
+		log.Print("[DEBUG] sys 207 ", err)
+		return err
+	}
+
 	return nil
 }
 
 //UnmountFS unmount file system
 func (r RBDDevice) UnmountFS() error {
+	err := syscall.Unmount(r.Mountpoint, 0)
+	if err != nil {
+		log.Print("[DEBUG] sys 207 ", err)
+		return err
+	}
+
 	return nil
 }
