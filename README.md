@@ -14,7 +14,9 @@ RBD mount wrapper cluster
         - [GET /health](#get-health)
             - [Example](#example)
         - [POST /mount](#post-mount)
+            - [Example](#example)
         - [POST /umount](#post-umount)
+            - [Example](#example)
 - [AUTHORS](#authors)
 - [LICENSE](#license)
 
