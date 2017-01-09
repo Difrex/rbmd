@@ -191,4 +191,4 @@ Denis Zheleztsov <difrex.punk@gmail.com>
 
 # LICENSE
 
-GPL version 3 see LICENSE
+GPL version 3 see [LICENSE](LICENSE)
