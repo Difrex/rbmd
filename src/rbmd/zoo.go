@@ -3,12 +3,15 @@ package rbmd
 import (
 	"github.com/samuel/go-zookeeper/zk"
 	"strings"
+	"log"
+	// "encoding/json"
 )
 
 //ZooNode zookeeper node
 type ZooNode struct {
 	Path string
 	Conn *zk.Conn
+	Zoo Zk
 }
 
 //EnsureZooPath create zookeeper path  
@@ -34,3 +37,22 @@ func (z ZooNode) EnsureZooPath(node string) (string, error) {
 	return fullnodepath, nil
 }
 
+//RMR remove Zk node recursive
+func (z ZooNode) RMR(path string) {
+	c, _, err := z.Conn.Children(path)
+	if err != nil {
+		log.Print("[zk ERROR] ", err)
+	}
+	log.Print("[WARNING] Trying delete ", path)
+	if len(c) > 0 {
+		for _, child := range c {
+			childPath := strings.Join([]string{path, child}, "/")
+			z.RMR(childPath)
+		}
+	}
+	err = z.Conn.Delete(path, -1)
+	if err != nil {
+		log.Print("[zk ERROR] ", err)
+	}
+	log.Print("[WARNING] ", path, " deleted")
+}

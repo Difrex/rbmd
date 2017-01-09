@@ -9,9 +9,10 @@ import (
 
 //Quorum quorum information
 type Quorum struct {
-	Quorum []Node `json:"quorum"`
-	Leader string `json:"leader"`
-	Health string `json:"health"`
+	Quorum       []Node `json:"quorum"`
+	Leader       string `json:"leader"`
+	Health       string `json:"health"`
+	DeadlyReason Node   `json:"deadlyreason"`
 }
 
 //GetQuorumHealth return health check of cluster state
@@ -34,6 +35,20 @@ func (z ZooNode) SetQuorumHealth(health string) {
 	z.Conn.Set(helthPath, []byte(health), zoStat.Version)
 }
 
+//SetDeadlyReason default null
+func (z ZooNode) SetDeadlyReason(node Node) {
+	deadlyReasonPath := strings.Join([]string{z.Path, "log/deadlyreason"}, "/")
+	z.EnsureZooPath("log/deadlyreason")
+
+	deadlyNode, err := json.Marshal(node)
+	if err != nil {
+		log.Print("[ERROR] Marshal json failed: ", err)
+	}
+
+	_, zoStat, _ := z.Conn.Get(deadlyReasonPath)
+	z.Conn.Set(deadlyReasonPath, deadlyNode, zoStat.Version)
+}
+
 //CheckAndSetHealth ...
 func (z ZooNode) CheckAndSetHealth(childrens []string) {
 	for _, child := range childrens {
@@ -44,14 +59,13 @@ func (z ZooNode) CheckAndSetHealth(childrens []string) {
 			log.Print("[ERROR] ", err)
 		}
 		json.Unmarshal(childState, &childNode)
-		state, message := CheckMounts(childState)
+		state, _ := CheckMounts(childState)
 		if !state {
 			if childNode.Updated < (time.Now().Unix() - 9) {
-				z.SetQuorumHealth(strings.Join(message, "\n"))
+				z.SetQuorumHealth("deadly.")
+				z.SetDeadlyReason(childNode)
 				return
 			} 
-			z.SetQuorumHealth("alive.")
-			return
 		}
 	}
 
@@ -60,10 +74,13 @@ func (z ZooNode) CheckAndSetHealth(childrens []string) {
 		for _, child := range childrens {
 			if child == currentHealth[2] {
 				z.SetQuorumHealth("alive.")
+				z.SetDeadlyReason(Node{})
 				return
 			}
 		}
 	}
+	z.SetQuorumHealth("alive.")
+	z.SetDeadlyReason(Node{})
 }
 
 //UpdateQuorum set current cluster state
@@ -90,7 +107,7 @@ func (z ZooNode) UpdateQuorum(childrens []string) {
 	}
 
 	// Update
-	log.Print("[DEBUG] Updating quorum")
+	// log.Print("[DEBUG] Updating quorum")
 	z.Conn.Set(quorumStatePath, q, zoStat.Version)
 }
 
@@ -122,7 +139,8 @@ func (z ZooNode) SetLeader(fqdn string) {
 
 //FindLeader return f.q.d.n of current leader
 func (z ZooNode) FindLeader(fqdn string) {
-	childrens, _, _, err := z.Conn.ChildrenW(strings.Join([]string{z.Path, "/cluster"}, ""))
+	// childrens, _, _, err := z.Conn.ChildrenW(strings.Join([]string{z.Path, "/cluster"}, ""))
+	childrens, _, err := z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
 	if err != nil {
 		log.Print("[ERROR] ", err)
 	}
@@ -133,7 +151,7 @@ func (z ZooNode) FindLeader(fqdn string) {
 	var node Node
 	json.Unmarshal(myState, &node)
 
-	state = z.CompareChilds(childrens, node)
+	state, childrens = z.CompareChilds(node)
 	if state {
 		z.SetLeader(fqdn)
 	}
@@ -143,40 +161,53 @@ func (z ZooNode) FindLeader(fqdn string) {
 }
 
 //CompareChilds return bool
-// Compare childrens
-func (z ZooNode) CompareChilds(childrens []string, node Node) (bool) {
+// Needs rewrite
+func (z ZooNode) CompareChilds(node Node) (bool, []string) {
+	childrens, _, err := z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
+	if err != nil {
+		log.Fatal("[zk ERROR] ", err)
+	}
+	if len(childrens) == 1 && childrens[0] == node.Node {
+		return true, childrens
+	}
+
 	currentLeader := z.GetLeader()
 	for _, child := range childrens {
-		var childNode Node
-		childStatePath := strings.Join([]string{z.Path, "/cluster/", child, "/state"}, "")
-		childState, _, err := z.Conn.Get(childStatePath)
-		if err != nil {
-			log.Print("[ERROR] ", err)
-		}
-		json.Unmarshal(childState, &childNode)
-
-		if childNode.Updated < (time.Now().Unix() - 9) {
-			leader := z.GetLeader()
-			if leader == child {
-				z.SetLeader(node.Node)
+		if child != node.Node {
+			var childNode Node
+			childStatePath := strings.Join([]string{z.Path, "/cluster/", child, "/state"}, "")
+			childState, _, err := z.Conn.Get(childStatePath)
+			if err != nil {
+				log.Print("[zk ERROR] ", err)
 			}
-			log.Print("[DEBUG] ", childNode)
-			childrens, _ := z.DestroyNode(child)
-			z.UpdateQuorum(childrens)
-			continue
-		}
-	
-		// Compare updated time
-		if node.Updated < childNode.Updated {
-			return false
-		}
+			json.Unmarshal(childState, &childNode)
 
-		// if (time.Now().Unix() - 5) < childNode.Updated &&
-		if childNode.Node == currentLeader {
-			return false
+			// log.Print("[DEBUG] child ", child, " updated ", childNode.Updated, " I'm updated ", node.Updated)
+			if childNode.Updated < (time.Now().Unix() - 9) {
+				log.Print("[DEBUG] child down ", child)
+				leader := z.GetLeader()
+				if leader == child {
+					z.SetLeader(node.Node)
+				}
+				childrens, _ := z.DestroyNode(child)
+				z.UpdateQuorum(childrens)
+				continue
+			}
+			
+			// Compare updated time
+			if node.Updated < childNode.Updated {
+				childrens, _, err = z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
+				return false, childrens
+			}
+
+			if childNode.Node == currentLeader {
+				childrens, _, _ = z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
+				return false, childrens
+			}
 		}
 	}
-	return true
+	childrens, _, _ = z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
+	return true, childrens
 }
 
 //DestroyNode ...
@@ -186,24 +217,22 @@ func (z ZooNode) DestroyNode(fqdn string) ([]string, string) {
 
 	childStatePath := strings.Join([]string{z.Path, "/cluster/", fqdn, "/state"}, "")
 	childPath := strings.Join([]string{z.Path, "/cluster/", fqdn}, "")
-	nodeStat, stateVersion, _ := z.Conn.Get(childStatePath)
+	nodeStat, _, _ := z.Conn.Get(childStatePath)
 
 	// Check node mounts
 	mountStat, message := CheckMounts(nodeStat)
 	if mountStat {
-		_, childVersion, _ := z.Conn.Get(childPath)
-		z.Conn.Delete(childStatePath, stateVersion.Version)
-		z.Conn.Delete(childPath, childVersion.Version)
+		z.RMR(childPath)
 		z.SetQuorumHealth(strings.Join([]string{"resizing. node ", fqdn}, ""))
 	}
 	
-	childrens, _, _, err := z.Conn.ChildrenW(strings.Join([]string{z.Path, "/cluster"}, ""))
+	childrens, _, err := z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
 	if err != nil {
-		log.Print("[ERROR] ", err)
+		log.Print("[zk ERROR] ", err)
 	}
 	log.Print("[DEBUG] After destroy childs ", childrens)
 
-	return childrens, strings.Join(message, "\n")
+	return childrens, strings.Join(message, "")
 }
 
 
@@ -212,6 +241,9 @@ func (z ZooNode) DestroyNode(fqdn string) ([]string, string) {
 func CheckMounts(nodeStat []byte) (bool, []string) {
 	var node Node
 
+	if string(nodeStat) == "" {
+		return true, []string{}
+	}
 	err := json.Unmarshal(nodeStat, &node)
 	if err != nil {
 		log.Print("[ERROR] ", err)
@@ -221,10 +253,21 @@ func CheckMounts(nodeStat []byte) (bool, []string) {
 	if len(node.Mounts) > 0 {
 		message = append(message, "deadly. ", "Reason: ", " NODE: ", node.Node)
 		for _, mount := range  node.Mounts {
-			message = append(message, " mountpoint: ", mount.Mountpoint, " block: ", mount.Block, " pool: ", mount.Pool)
+			message = append(message, ", mountpoint: ", mount.Mountpoint, ", block: ", mount.Block, ", pool: ", mount.Pool)
 		}
 		return false, message
 	}
 
 	return true, message
+}
+
+//Reconnect reconnect to Zk
+func (z ZooNode) Reconnect() {
+	log.Print("[WARNING] Reconnect to Zk")
+	z.Conn.Close()
+	connection, err := z.Zoo.InitConnection()
+	if err != nil {
+		log.Panic(err)
+	}
+	z.Conn = connection
 }

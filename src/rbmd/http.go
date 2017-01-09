@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"log"
 	"encoding/json"
+	"strings"
 	"time"
 	
 	"github.com/gorilla/websocket"
@@ -13,6 +14,44 @@ import (
 type ServerConf struct {
 	Addr string
 	Ws string
+}
+
+//MountHandler /mount location
+func (wr wrr) MountHandler (w http.ResponseWriter, r *http.Request) {
+		decoder := json.NewDecoder(r.Body)
+		var m RBDDevice
+		err := decoder.Decode(&m)
+		log.Print("[DEBUG] ", m)
+		var msE []byte
+		if err != nil {
+			msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
+			w.Write(msE)
+			return
+		}
+
+		// var wCh chan MountState
+		wCh := make(chan MountState, 1)
+		go func() { wCh <- wr.z.WatchAnswer(m.Node, "mount") }()
+		err = wr.z.MountRequest(m)
+		if err != nil {
+			w.Write(msE)
+		}
+
+		answerState := <-wCh
+		log.Print(answerState)
+		wr.z.RMR(strings.Join([]string{wr.z.Path, "cluster", wr.Fqdn, "answers", "mount"}, "/"))
+		state, err := json.Marshal(answerState)
+		if err != nil {
+			log.Print("[ERROR] ", err)
+			w.Write(msE)
+		}
+		w.Write(state)
+}
+
+//wrr API
+type wrr struct {
+	Fqdn string
+	z ZooNode
 }
 
 //ServeHTTP start http server
@@ -38,14 +77,13 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 		w.Write(state)
 	})
 
+	wr := wrr{
+		fqdn,
+		z,
+	}
+	
 	// Mount volume. Accept JSON. Return JSON.
-	http.HandleFunc("/mount", func(w http.ResponseWriter, r *http.Request) {
-		state, err := json.Marshal(MountState{"FAIL", "Not implemented yet"})
-		if err != nil {
-			log.Fatal(err)
-		}
-		w.Write(state)
-	})
+	http.HandleFunc("/mount", wr.MountHandler)
 
 	// Umount volume. Accept JSON. Return JSON.
 	http.HandleFunc("/umount", func(w http.ResponseWriter, r *http.Request) {
@@ -57,7 +95,6 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 	}
 	log.Fatal(server.ListenAndServe())
 }
-
 
 //Writer ws
 type Writer struct {
