@@ -152,7 +152,36 @@ On failure
 
 ### POST /umount
 
-Accept JSON. Not implemented yet.
+Unmount filesystem and unmap RBD device
+
+#### Example
+ 
+Accept JSON
+```
+{
+    "node": "node.example.com",
+    "mountpoint": "/var/www/pictures",
+    "block": "rbd0"
+}
+```
+
+Return JSON.
+
+On success
+```
+{
+    "state": "OK",
+    "message": "OK"
+}
+```
+
+On failure
+```
+{
+    "state": "FAIL"
+    "message": "Not found"
+}
+```
 
 # AUTHORS
 
