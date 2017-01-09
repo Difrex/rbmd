@@ -57,7 +57,21 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				z.Answer(fqdn, child, std, "OK")
 			// 1) Unmount FS 2) Unmap RBD
 			} else if child == "umount" {
-				log.Print("[DEBUG] Umount")
+				err := r.UnmountFS()
+				if err != nil {
+					z.RMR(p)
+					z.Answer(fqdn, child, []byte("Failed umount device"), "FAIL")
+					log.Print("[ERROR] Umount error: ", err)
+					break
+				}
+				std, err := r.UnmapDevice()
+				if err != nil {
+					z.RMR(p)
+					z.Answer(fqdn, child, std, "FAIL")
+					log.Print("[ERROR] Unmapping error: ", string(std), err)
+					break
+				}
+				z.Answer(fqdn, child, std, "OK")
 			} else {
 				log.Print("[DEBUG] Unknown ", child)
 			}
@@ -87,11 +101,6 @@ func (z ZooNode) Answer(fqdn string, req string, stderr []byte, t string) {
 	}
 }
 
-//MountRequest write mount request
-// func (z ZooNode) MountRequest(RBDDevice) {
-	
-// }
-
 //MountRequest create node with mount requests from API
 func (z ZooNode) MountRequest(r RBDDevice) error {
 	jsReq, err := json.Marshal(r)
@@ -100,6 +109,26 @@ func (z ZooNode) MountRequest(r RBDDevice) error {
 	}
 
 	requestsPath := strings.Join([]string{z.Path, "cluster", r.Node, "requests", "mount"}, "/")
+	_, err = z.Conn.Create(requestsPath, jsReq, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		_, err := z.Conn.Set(requestsPath, jsReq, -1)
+		if err != nil {
+			log.Print("[zk ERROR] ", err)
+			return err
+		}
+	}
+	return nil
+}
+
+//UmountRequest create node with umount requests from API
+// OMFG: Needs merge with MountRequest
+func (z ZooNode) UmountRequest(r RBDDevice) error {
+	jsReq, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+
+	requestsPath := strings.Join([]string{z.Path, "cluster", r.Node, "requests", "umount"}, "/")
 	_, err = z.Conn.Create(requestsPath, jsReq, 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
 		_, err := z.Conn.Set(requestsPath, jsReq, -1)
