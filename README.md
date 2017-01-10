@@ -199,6 +199,19 @@ On failure
 }
 ```
 
+### POST /resolve
+
+Remove deadly node from quorum.
+
+#### Example
+
+Accept JSON
+```json
+{
+    "node": "node.example.com"
+}
+```
+
 # AUTHORS
 
 Denis Zheleztsov <difrex.punk@gmail.com>
