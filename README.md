@@ -71,8 +71,7 @@ Return JSON of quorum status
 
 #### Example
 
-```
- curl 127.0.0.1:9076/status | jq
+```json
 {
   "quorum": {
     "node.example.com": {
@@ -99,7 +98,7 @@ Return JSON of quorum status
 Return JSON of node stats 
 
 #### Example
-```
+```json
 {
   "node": "difrex-mac.wargaming.net",
   "ip": {
@@ -121,8 +120,8 @@ Return string with quorum health check result
 
 Statuses:
   * alive. Match regexp: ```^alive\.$``` -- all is good
-  * resizing. Match regexp: ```^resizing\. (.+)``` -- One or more nodes goind down
-  * deadly. Match regexp: ```^deadly\. (.+)``` -- One or more nodes is down and they has mapped images. Return string with \n
+  * resizing. Match regexp: ```^resizing\.$``` -- One or more nodes goind down
+  * deadly. Match regexp: ```^deadly\.$``` -- One or more nodes is down and they has mapped images
   
 
 #### Example
@@ -138,7 +137,7 @@ Map rbd image and mount it
 #### Example
 
 Accept JSON
-```
+```json
 {
     "node": "node.example.com",
     "pool": "web",
@@ -152,7 +151,7 @@ Accept JSON
 Return JSON.
 
 On success
-```
+```json
 {
     "state": "OK",
     "message": "OK"
@@ -160,7 +159,7 @@ On success
 ```
 
 On failure
-```
+```json
 {
     "state": "FAIL"
     "message": "mount: /dev/null not a block device"
@@ -174,7 +173,7 @@ Unmount filesystem and unmap RBD device
 #### Example
  
 Accept JSON
-```
+```json
 {
     "node": "node.example.com",
     "mountpoint": "/var/www/pictures",
@@ -185,7 +184,7 @@ Accept JSON
 Return JSON.
 
 On success
-```
+```json
 {
     "state": "OK",
     "message": "OK"
@@ -193,7 +192,7 @@ On success
 ```
 
 On failure
-```
+```json
 {
     "state": "FAIL"
     "message": "Not found"
