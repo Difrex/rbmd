@@ -21,6 +21,8 @@ RBD mount wrapper cluster
             - [Example](#example)
         - [POST /umount](#post-umount)
             - [Example](#example)
+        - [POST /resolve](#post-resolve)
+            - [Example](#example)
 - [AUTHORS](#authors)
 - [LICENSE](#license)
 
