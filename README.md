@@ -48,6 +48,17 @@ Usage of ./rbmd:
 
 ```./rbmd -listen 127.0.0.1:9908 -zkPath /rbmd-ru-dc3-rack5```
 
+## Build
+
+Required Go > 1.6
+
+```
+git clone https://github.com/rbmd/rbmd.git && cd rbmd
+GOPATH=$(pwd) go get github.com/gorilla/websocket
+GOPATH=$(pwd) go get github.com/samuel/go-zookeeper/zk
+GOPATH=$(pwd) go build
+```
+
 ## API
 
 ### GET /status
