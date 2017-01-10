@@ -1,11 +1,15 @@
+# RBMD
+
 RBD mount wrapper cluster
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
 **Table of Contents**
 
-- [-](#-)
-- [Usage](#usage)
-    - [Example](#example)
+- [RBMD](#rbmd)
+    - [Dependencies](#dependencies)
+    - [Usage](#usage)
+        - [Example](#example)
+    - [Build](#build)
     - [API](#api)
         - [GET /status](#get-status)
             - [Example](#example)
