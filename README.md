@@ -163,7 +163,7 @@ On success
 On failure
 ```json
 {
-    "state": "FAIL"
+    "state": "FAIL",
     "message": "mount: /dev/null not a block device"
 }
 ```
