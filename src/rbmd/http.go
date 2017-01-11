@@ -18,66 +18,91 @@ type ServerConf struct {
 
 //MountHandler /mount location
 func (wr wrr) MountHandler (w http.ResponseWriter, r *http.Request) {
-		decoder := json.NewDecoder(r.Body)
-		var m RBDDevice
-		err := decoder.Decode(&m)
-		log.Print("[DEBUG] ", m)
-		var msE []byte
-		if err != nil {
-			msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
-			w.Write(msE)
-			return
-		}
+	decoder := json.NewDecoder(r.Body)
+	var m RBDDevice
+	err := decoder.Decode(&m)
+	log.Print("[DEBUG] ", m)
+	var msE []byte
+	if err != nil {
+		msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
+		w.Write(msE)
+		return
+	}
 
-		// var wCh chan MountState
-		wCh := make(chan MountState, 1)
-		go func() { wCh <- wr.z.WatchAnswer(m.Node, "mount") }()
-		err = wr.z.MountRequest(m)
-		if err != nil {
-			w.Write(msE)
-		}
+	// var wCh chan MountState
+	wCh := make(chan MountState, 1)
+	go func() { wCh <- wr.z.WatchAnswer(m.Node, "mount") }()
+	err = wr.z.MountRequest(m)
+	if err != nil {
+		w.Write(msE)
+	}
 
-		answerState := <-wCh
-		log.Print(answerState)
-		wr.z.RMR(strings.Join([]string{wr.z.Path, "cluster", wr.Fqdn, "answers", "mount"}, "/"))
-		state, err := json.Marshal(answerState)
-		if err != nil {
-			log.Print("[ERROR] ", err)
-			w.Write(msE)
-		}
-		w.Write(state)
+	answerState := <-wCh
+	log.Print(answerState)
+	wr.z.RMR(strings.Join([]string{wr.z.Path, "cluster", wr.Fqdn, "answers", "mount"}, "/"))
+	state, err := json.Marshal(answerState)
+	if err != nil {
+		log.Print("[ERROR] ", err)
+		w.Write(msE)
+	}
+	w.Write(state)
 }
 
 //UmountHandler /umount location
 func (wr wrr) UmountHandler (w http.ResponseWriter, r *http.Request) {
-		decoder := json.NewDecoder(r.Body)
-		var m RBDDevice
-		err := decoder.Decode(&m)
-		log.Print("[DEBUG] ", m)
-		var msE []byte
-		if err != nil {
-			msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
-			w.Write(msE)
-			return
-		}
+	decoder := json.NewDecoder(r.Body)
+	var m RBDDevice
+	err := decoder.Decode(&m)
+	log.Print("[DEBUG] ", m)
+	var msE []byte
+	if err != nil {
+		msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
+		w.Write(msE)
+		return
+	}
 
-		// var wCh chan MountState
-		wCh := make(chan MountState, 1)
-		go func() { wCh <- wr.z.WatchAnswer(m.Node, "umount") }()
-		err = wr.z.UmountRequest(m)
-		if err != nil {
-			w.Write(msE)
-		}
+	// var wCh chan MountState
+	wCh := make(chan MountState, 1)
+	go func() { wCh <- wr.z.WatchAnswer(m.Node, "umount") }()
+	err = wr.z.UmountRequest(m)
+	if err != nil {
+		w.Write(msE)
+	}
 
-		answerState := <-wCh
-		log.Print(answerState)
-		wr.z.RMR(strings.Join([]string{wr.z.Path, "cluster", wr.Fqdn, "answers", "umount"}, "/"))
-		state, err := json.Marshal(answerState)
-		if err != nil {
-			log.Print("[ERROR] ", err)
-			w.Write(msE)
-		}
-		w.Write(state)
+	answerState := <-wCh
+	log.Print(answerState)
+	wr.z.RMR(strings.Join([]string{wr.z.Path, "cluster", wr.Fqdn, "answers", "umount"}, "/"))
+	state, err := json.Marshal(answerState)
+	if err != nil {
+		log.Print("[ERROR] ", err)
+		w.Write(msE)
+	}
+	w.Write(state)
+}
+
+
+//Resolve resolve request
+type Resolve struct {
+	Node string `json:"node"`
+}
+
+//ResolveHandler resolve `deadly.` state. /resolve location
+func (wr wrr) ResoleHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+	var res Resolve
+	err := decoder.Decode(&res)
+	var msE []byte
+	if err != nil {
+		msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
+		w.Write(msE)
+		return
+	}
+
+	if err := wr.z.ResolveRequest(res); err != nil {
+		w.WriteHeader(500)
+	}
+
+	w.WriteHeader(200)
 }
 
 //wrr API
@@ -119,6 +144,9 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 
 	// Umount volume. Accept JSON. Return JSON.
 	http.HandleFunc("/umount", wr.UmountHandler)
+
+	// Umount volume. Accept JSON. Return JSON.
+	http.HandleFunc("/resolve", wr.ResoleHandler)
 
 	server := &http.Server{
 		Addr: s.Addr,

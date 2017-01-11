@@ -72,13 +72,62 @@ func (z ZooNode) RequestWatch(fqdn string) {
 					break
 				}
 				z.Answer(fqdn, child, std, "OK")
+			} else if child == "resolve" && z.GetLeader() == fqdn {
+				if err := z.Resolve(fqdn); err != nil {
+					log.Print("[ERROR] ", err)
+					z.RMR(p)
+				}
 			} else {
-				log.Print("[DEBUG] Unknown ", child)
+				log.Print("[ERROR] Unknown request: ", child)
+				z.RMR(p)
 			}
 			z.RMR(p)
 		}
 		break
 	}
+}
+
+//Resolve delete node from quorum
+func (z ZooNode) Resolve(fqdn string) error {
+	resolvePath := strings.Join([]string{z.Path, "cluster", fqdn, "requests", "resolve"}, "/")
+
+	r, _, err := z.Conn.Get(resolvePath)
+	if err != nil {
+		return err
+	}
+	
+	var res Resolve
+	if err := json.Unmarshal(r, &res); err != nil {
+		return err
+	}
+
+	deadlyNodePath := strings.Join([]string{z.Path, "cluster", res.Node}, "/")
+	z.RMR(resolvePath)
+	z.RMR(deadlyNodePath)
+
+	return nil
+}
+
+//ResolveRequest make request for resolve deadly.
+func (z ZooNode) ResolveRequest(r Resolve) error {
+	leader := z.GetLeader()
+	resolvePath := strings.Join([]string{z.Path, "cluster", leader, "requests", "resolve"}, "/")
+
+	jsReq, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
+
+	_, err = z.Conn.Create(resolvePath, jsReq, 0, zk.WorldACL(zk.PermAll))
+	if err != nil {
+		_, err := z.Conn.Set(resolvePath, jsReq, -1)
+		if err != nil {
+			log.Print("[zk ERROR] ", err)
+			return err
+		}
+	}
+	
+	return nil
 }
 
 //Answer make answer
