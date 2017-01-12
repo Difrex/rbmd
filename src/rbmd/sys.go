@@ -224,13 +224,36 @@ func (r RBDDevice) UnmapDevice() ([]byte, error) {
 
 //MountFS mount file system
 func (r RBDDevice) MountFS(device string) error {
-	err := syscall.Mount(device, r.Mountpoint, r.Fstype, 0, r.Mountopts)
+	err := syscall.Mount(device, r.Mountpoint, r.Fstype, ParseMountOpts(r.Mountopts), "")
+	log.Print("[DEBUG] RBDDevice: ", r)
 	if err != nil {
 		log.Print("[DEBUG] sys 207 ", err)
 		return err
 	}
 
 	return nil
+}
+
+//ParseMountOpts parse RBDDevice.Mountopts. Return uintptr
+func ParseMountOpts(mountopts string) uintptr {
+	// Mount options map
+	opts := make(map[string]uintptr)
+	opts["ro"] = syscall.MS_RDONLY
+	opts["noatime"] = syscall.MS_NOATIME
+	opts["relatime"] = syscall.MS_RELATIME
+	opts["nosuid"] = syscall.MS_NOSUID
+	opts["noexec"] = syscall.MS_NOEXEC
+	opts["nodiratime"] = syscall.MS_NODIRATIME
+
+	var msOpts uintptr
+	if mountopts != "" {
+		for _, o := range strings.Split(mountopts, ",") {
+			msOpts = uintptr(msOpts|opts[o])
+		}
+		return msOpts
+	}
+
+	return  0
 }
 
 //UnmountFS unmount file system

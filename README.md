@@ -142,6 +142,14 @@ alive.
 
 Map rbd image and mount it
 
+Allowed mount options:
+ * ro
+ * noatime
+ * relatime
+ * nosuid
+ * noexec
+ * nodiratime
+
 #### Example
 
 Accept JSON
