@@ -1,16 +1,15 @@
 package rbmd
 
 import (
-	"syscall"
-	"io/ioutil"
-	"net"
-	"log"
-	"strings"
-	"regexp"
-	"time"
-	"os/exec"
 	"bytes"
-
+	"io/ioutil"
+	"log"
+	"net"
+	"os/exec"
+	"regexp"
+	"strings"
+	"syscall"
+	"time"
 	// "fmt"
 )
 
@@ -18,25 +17,25 @@ import (
 type ClusterStatus struct {
 	Quorum []Node `json:"quorum"`
 	Health string `json:"health"`
-	Zk string     `json:"zk"`
+	Zk     string `json:"zk"`
 }
 
 //Node Node status struct
 type Node struct {
-	Node string     `json:"node"`
-	IP IPs          `json:"ip"`
+	Node    string  `json:"node"`
+	IP      IPs     `json:"ip"`
 	Updated int64   `json:"updated"`
-	Mounts []Mount  `json:"mounts"`
+	Mounts  []Mount `json:"mounts"`
 }
 
 // Mount struct
 type Mount struct {
 	Mountpoint string `json:"mountpoint"`
-	Mountopts string  `json:"mountopts"`
-	Fstype string     `json:"fstype"`
-	Pool string       `json:"pool"`
-	Image string      `json:"image"`
-	Block string      `json:"block"`
+	Mountopts  string `json:"mountopts"`
+	Fstype     string `json:"fstype"`
+	Pool       string `json:"pool"`
+	Image      string `json:"image"`
+	Block      string `json:"block"`
 }
 
 //IPs IP addresses
@@ -61,14 +60,14 @@ func GetMounts() []Mount {
 		}
 		if match {
 			p := strings.Split(mount[0], "/")
-			pool, image := GetRBDPool(p[len(p) - 1])
+			pool, image := GetRBDPool(p[len(p)-1])
 			mounts = append(mounts, Mount{
 				mount[1],
 				mount[3],
 				mount[2],
 				pool,
 				image,
-				p[len(p) - 1],
+				p[len(p)-1],
 			})
 		}
 	}
@@ -96,7 +95,7 @@ func GetRBDPool(device string) (string, string) {
 	return string(pool), string(image)
 }
 
-//GetMyIPs Exclude 127.0.0.1 
+//GetMyIPs Exclude 127.0.0.1
 func GetMyIPs() IPs {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -114,9 +113,9 @@ func GetMyIPs() IPs {
 			var ip net.IP
 			switch v := addr.(type) {
 			case *net.IPNet:
-                ip = v.IP
+				ip = v.IP
 			case *net.IPAddr:
-                ip = v.IP
+				ip = v.IP
 			}
 			if ip.String() != "127.0.0.1" && ip.String() != "::1" {
 				match, err := regexp.MatchString("^.*:.*$", ip.String())
@@ -138,7 +137,6 @@ func GetMyIPs() IPs {
 	}
 }
 
-
 //GetNodeState Return Node struct
 func GetNodeState(fqdn string) Node {
 	var n Node
@@ -151,22 +149,21 @@ func GetNodeState(fqdn string) Node {
 	return n
 }
 
-
 //MountState status of mount/umount
 type MountState struct {
-	State string   `json:"state"`
+	State   string `json:"state"`
 	Message string `json:"message"`
 }
 
 //RBDDevice rbd block device struct
 type RBDDevice struct {
-	Node string       `json:"node"`
-	Pool string       `json:"pool"`
-	Image string      `json:"image"`
-	Block string      `json:"block"`
+	Node       string `json:"node"`
+	Pool       string `json:"pool"`
+	Image      string `json:"image"`
+	Block      string `json:"block"`
 	Mountpoint string `json:"mountpoint"`
-	Mountopts string  `json:"mountopts"`
-	Fstype string     `json:"fstype"`
+	Mountopts  string `json:"mountopts"`
+	Fstype     string `json:"fstype"`
 }
 
 //MapDevice map rbd block device
@@ -176,7 +173,7 @@ func (r RBDDevice) MapDevice() ([]byte, error) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	
+
 	cmd := exec.Command("rbd", "map", image)
 
 	cmd.Stdout = &stdout
@@ -184,15 +181,15 @@ func (r RBDDevice) MapDevice() ([]byte, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return []byte(stderr.String()) , err
+		return []byte(stderr.String()), err
 	}
 
 	o := stdout.String()
 
 	if strings.HasSuffix(o, "\n") {
-        o = o[ :len(o) - 1]
-    }
-	
+		o = o[:len(o)-1]
+	}
+
 	return []byte(o), nil
 }
 
@@ -202,7 +199,7 @@ func (r RBDDevice) UnmapDevice() ([]byte, error) {
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
-	
+
 	cmd := exec.Command("rbd", "unmap", strings.Join([]string{"/dev/", r.Block}, ""))
 
 	cmd.Stdout = &stdout
@@ -210,22 +207,21 @@ func (r RBDDevice) UnmapDevice() ([]byte, error) {
 
 	err := cmd.Run()
 	if err != nil {
-		return []byte(stderr.String()) , err
+		return []byte(stderr.String()), err
 	}
 
 	o := stdout.String()
 
 	if strings.HasSuffix(o, "\n") {
-        o = o[ :len(o) - 1]
-    }
-	
+		o = o[:len(o)-1]
+	}
+
 	return []byte(o), nil
 }
 
 //MountFS mount file system
 func (r RBDDevice) MountFS(device string) error {
 	err := syscall.Mount(device, r.Mountpoint, r.Fstype, ParseMountOpts(r.Mountopts), "")
-	log.Print("[DEBUG] RBDDevice: ", r)
 	if err != nil {
 		log.Print("[DEBUG] sys 207 ", err)
 		return err
@@ -239,8 +235,8 @@ func ParseMountOpts(mountopts string) uintptr {
 	// Mount options map
 	opts := make(map[string]uintptr)
 	opts["ro"] = syscall.MS_RDONLY
-	opts["noatime"] = syscall.MS_NOATIME
 	opts["relatime"] = syscall.MS_RELATIME
+	opts["noatime"] = syscall.MS_NOATIME
 	opts["nosuid"] = syscall.MS_NOSUID
 	opts["noexec"] = syscall.MS_NOEXEC
 	opts["nodiratime"] = syscall.MS_NODIRATIME
@@ -248,12 +244,12 @@ func ParseMountOpts(mountopts string) uintptr {
 	var msOpts uintptr
 	if mountopts != "" {
 		for _, o := range strings.Split(mountopts, ",") {
-			msOpts = uintptr(msOpts|opts[o])
+			msOpts = uintptr(msOpts | opts[o])
 		}
 		return msOpts
 	}
 
-	return  0
+	return 0
 }
 
 //UnmountFS unmount file system

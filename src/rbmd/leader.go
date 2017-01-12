@@ -1,9 +1,9 @@
 package rbmd
 
 import (
-	"strings"
-	"log"
 	"encoding/json"
+	"log"
+	"strings"
 	"time"
 )
 
@@ -65,7 +65,7 @@ func (z ZooNode) CheckAndSetHealth(childrens []string) {
 				z.SetQuorumHealth("deadly.")
 				z.SetDeadlyReason(childNode)
 				return
-			} 
+			}
 		}
 	}
 
@@ -144,7 +144,7 @@ func (z ZooNode) FindLeader(fqdn string) {
 	if err != nil {
 		log.Print("[ERROR] ", err)
 	}
-	
+
 	var state bool
 
 	myState, _, _ := z.Conn.Get(strings.Join([]string{z.Path, "/cluster/", fqdn, "/state"}, ""))
@@ -193,7 +193,7 @@ func (z ZooNode) CompareChilds(node Node) (bool, []string) {
 				z.UpdateQuorum(childrens)
 				continue
 			}
-			
+
 			// Compare updated time
 			if node.Updated < childNode.Updated {
 				childrens, _, err = z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
@@ -225,7 +225,7 @@ func (z ZooNode) DestroyNode(fqdn string) ([]string, string) {
 		z.RMR(childPath)
 		z.SetQuorumHealth(strings.Join([]string{"resizing. node ", fqdn}, ""))
 	}
-	
+
 	childrens, _, err := z.Conn.Children(strings.Join([]string{z.Path, "/cluster"}, ""))
 	if err != nil {
 		log.Print("[zk ERROR] ", err)
@@ -234,7 +234,6 @@ func (z ZooNode) DestroyNode(fqdn string) ([]string, string) {
 
 	return childrens, strings.Join(message, "")
 }
-
 
 //CheckMounts ...
 // Check mounts on down node
@@ -252,7 +251,7 @@ func CheckMounts(nodeStat []byte) (bool, []string) {
 	var message []string
 	if len(node.Mounts) > 0 {
 		message = append(message, "deadly. ", "Reason: ", " NODE: ", node.Node)
-		for _, mount := range  node.Mounts {
+		for _, mount := range node.Mounts {
 			message = append(message, ", mountpoint: ", mount.Mountpoint, ", block: ", mount.Block, ", pool: ", mount.Pool)
 		}
 		return false, message

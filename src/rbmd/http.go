@@ -1,23 +1,23 @@
 package rbmd
 
 import (
-	"net/http"
-	"log"
 	"encoding/json"
+	"log"
+	"net/http"
 	"strings"
 	"time"
-	
+
 	"github.com/gorilla/websocket"
 )
 
 //ServerConf configuration of http api server
 type ServerConf struct {
 	Addr string
-	Ws string
+	Ws   string
 }
 
 //MountHandler /mount location
-func (wr wrr) MountHandler (w http.ResponseWriter, r *http.Request) {
+func (wr wrr) MountHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var m RBDDevice
 	err := decoder.Decode(&m)
@@ -49,7 +49,7 @@ func (wr wrr) MountHandler (w http.ResponseWriter, r *http.Request) {
 }
 
 //UmountHandler /umount location
-func (wr wrr) UmountHandler (w http.ResponseWriter, r *http.Request) {
+func (wr wrr) UmountHandler(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	var m RBDDevice
 	err := decoder.Decode(&m)
@@ -80,7 +80,6 @@ func (wr wrr) UmountHandler (w http.ResponseWriter, r *http.Request) {
 	w.Write(state)
 }
 
-
 //Resolve resolve request
 type Resolve struct {
 	Node string `json:"node"`
@@ -108,7 +107,7 @@ func (wr wrr) ResoleHandler(w http.ResponseWriter, r *http.Request) {
 //wrr API
 type wrr struct {
 	Fqdn string
-	z ZooNode
+	z    ZooNode
 }
 
 //ServeHTTP start http server
@@ -138,7 +137,7 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 		fqdn,
 		z,
 	}
-	
+
 	// Mount volume. Accept JSON. Return JSON.
 	http.HandleFunc("/mount", wr.MountHandler)
 
@@ -157,7 +156,7 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 //Writer ws
 type Writer struct {
 	Upgrader websocket.Upgrader
-	z ZooNode
+	z        ZooNode
 }
 
 //WriteStatusWs wrtite quorum status to websockets client
@@ -174,7 +173,7 @@ func (wr Writer) WriteStatusWs(w http.ResponseWriter, r *http.Request) {
 		// break
 		return
 	}
-	
+
 	go func() {
 		for {
 			err = c.WriteMessage(mt, wr.z.GetState())

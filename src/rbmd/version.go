@@ -1,9 +1,9 @@
 package rbmd
 
 import (
+	"fmt"
 	"os"
 	"runtime"
-	"fmt"
 )
 
 //VersionShow show version and exit

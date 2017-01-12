@@ -1,9 +1,9 @@
 package rbmd
 
 import (
+	"encoding/json"
 	"log"
 	"strings"
-	"encoding/json"
 	// "bytes"
 
 	"github.com/samuel/go-zookeeper/zk"
@@ -55,7 +55,7 @@ func (z ZooNode) RequestWatch(fqdn string) {
 					break
 				}
 				z.Answer(fqdn, child, std, "OK")
-			// 1) Unmount FS 2) Unmap RBD
+				// 1) Unmount FS 2) Unmap RBD
 			} else if child == "umount" {
 				err := r.UnmountFS()
 				if err != nil {
@@ -95,7 +95,7 @@ func (z ZooNode) Resolve(fqdn string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	var res Resolve
 	if err := json.Unmarshal(r, &res); err != nil {
 		return err
@@ -126,7 +126,7 @@ func (z ZooNode) ResolveRequest(r Resolve) error {
 			return err
 		}
 	}
-	
+
 	return nil
 }
 
@@ -201,7 +201,7 @@ func (z ZooNode) WatchAnswer(fqdn string, t string) MountState {
 
 	var ms MountState
 	var p string
-	
+
 	for {
 		ans := <-ch
 		log.Print("[DEBUG] ch answer path ", ans.Path)

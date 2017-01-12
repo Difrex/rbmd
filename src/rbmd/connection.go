@@ -16,4 +16,3 @@ func (conf Zk) InitConnection() (*zk.Conn, error) {
 
 	return conn, err
 }
-

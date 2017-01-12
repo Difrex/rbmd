@@ -8,12 +8,12 @@ import (
 )
 
 var (
-	zk string
+	zk     string
 	zkPath string
-	tick int
+	tick   int
 	listen string
-	ws string
-	v bool
+	ws     string
+	v      bool
 )
 
 func init() {
@@ -31,7 +31,7 @@ func main() {
 	if v {
 		rbmd.VersionShow()
 	}
-	
+
 	config := rbmd.Zk{
 		strings.Split(zk, ","),
 		zkPath,

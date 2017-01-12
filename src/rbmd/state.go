@@ -21,7 +21,7 @@ func Run(zoo Zk, s ServerConf) {
 	z := ZooNode{zoo.Path, connection, zoo}
 
 	z.CreateZkTree(fqdn)
-	go func () {
+	go func() {
 		for {
 			z.RequestWatch(fqdn)
 		}
@@ -77,13 +77,12 @@ func (z ZooNode) UpdateState(zkPath string, fqdn string) {
 	}
 }
 
-
 //jsonState HTTP API quorum status
 type jsonState struct {
-	Quorum map[string]Node `json:"quorum"`
-    Health string          `json:"health"`
-	DeadlyReason Node      `json:"deadlyreason"`
-	Leader string          `json:"leader"`
+	Quorum       map[string]Node `json:"quorum"`
+	Health       string          `json:"health"`
+	DeadlyReason Node            `json:"deadlyreason"`
+	Leader       string          `json:"leader"`
 }
 
 //GetState return cluster status
