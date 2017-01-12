@@ -196,6 +196,7 @@ func (z ZooNode) WatchAnswer(fqdn string, t string) MountState {
 	_, _, ch, err := z.Conn.ChildrenW(answersPath)
 	if err != nil {
 		log.Print("[zk ERROR] 107 ", err)
+		return MountState{"FAIL", "Zk error"}
 	}
 
 	var ms MountState
