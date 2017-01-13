@@ -45,11 +45,13 @@ Current status: *development*, *testing*
 ```
 Usage of ./rbmd:
   -listen string
-    	HTTP API listen address (default "0.0.0.0:9076")
+    	HTTP API listen address (default "127.0.0.1:9076")
   -tick int
     	Tick time loop (default 5)
+  -version
+    	Show version info and exit
   -ws string
-    	Websockets listen address (default "0.0.0.0:7690")
+    	Websockets listen address (default "127.0.0.1:7690")
   -zk string
     	Zookeeper servers comma separated (default "127.0.0.1:2181")
   -zkPath string
