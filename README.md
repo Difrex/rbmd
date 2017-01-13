@@ -29,6 +29,8 @@ Current status: *development*, *testing*
             - [Example](#example)
         - [POST /resolve](#post-resolve)
             - [Example](#example)
+        - [GET /metrics](#get-metrics)
+            - [Example](#example)
 - [AUTHORS](#authors)
 - [LICENSE](#license)
 
@@ -227,6 +229,21 @@ Accept JSON
 ```json
 {
     "node": "node.example.com"
+}
+```
+
+### GET /metrics
+
+Return some metrics
+
+#### Example
+
+```json
+{
+  "goroutines": 9,
+  "nodes": 2,
+  "mountstotal": 0,
+  "cgocall": 1
 }
 ```
 
