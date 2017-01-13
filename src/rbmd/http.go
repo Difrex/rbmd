@@ -133,6 +133,19 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 		w.Write(state)
 	})
 
+	// Return JSON mertrics
+	http.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
+		m, err := GetMetrics(z)
+		if err != nil {
+			w.WriteHeader(500)
+		}
+		state, err := json.Marshal(m)
+		if err != nil {
+			log.Fatal(err)
+		}
+		w.Write(state)
+	})
+
 	wr := wrr{
 		fqdn,
 		z,
