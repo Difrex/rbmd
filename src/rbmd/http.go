@@ -93,6 +93,7 @@ func (wr wrr) ResoleHandler(w http.ResponseWriter, r *http.Request) {
 	var msE []byte
 	if err != nil {
 		msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
+		w.WriteHeader(500)
 		w.Write(msE)
 		return
 	}
@@ -114,23 +115,24 @@ type wrr struct {
 func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 
 	// Return JSON of full quorum status
-	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/v1/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Write(z.GetState())
 	})
 
 	// Return string with quorum health check result
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(z.GetQuorumHealth()))
 	})
 
 	// Return JSON of node description
-	http.HandleFunc("/node", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/v1/node", func(w http.ResponseWriter, r *http.Request) {
 		n := GetNodeState(fqdn)
 		state, err := json.Marshal(n)
 		if err != nil {
 			log.Fatal(err)
 		}
 		w.Write(state)
+		return
 	})
 
 	// Return JSON mertrics
@@ -138,6 +140,7 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 		m, err := GetMetrics(z)
 		if err != nil {
 			w.WriteHeader(500)
+			return
 		}
 		state, err := json.Marshal(m)
 		if err != nil {
@@ -146,19 +149,16 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 		w.Write(state)
 	})
 
-	wr := wrr{
-		fqdn,
-		z,
-	}
+	wr := wrr{fqdn, z}
 
 	// Mount volume. Accept JSON. Return JSON.
-	http.HandleFunc("/mount", wr.MountHandler)
+	http.HandleFunc("/v1/mount", wr.MountHandler)
 
 	// Umount volume. Accept JSON. Return JSON.
-	http.HandleFunc("/umount", wr.UmountHandler)
+	http.HandleFunc("/v1/umount", wr.UmountHandler)
 
 	// Umount volume. Accept JSON. Return JSON.
-	http.HandleFunc("/resolve", wr.ResoleHandler)
+	http.HandleFunc("/v1/resolve", wr.ResoleHandler)
 
 	server := &http.Server{
 		Addr: s.Addr,
