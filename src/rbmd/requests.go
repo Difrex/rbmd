@@ -37,8 +37,21 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				log.Print("[ERROR] ", err)
 			}
 
-			// 1) Map RBD 2) Mount FS
+			// 0) Check already mounted devices 1) Map RBD 2) Mount FS
 			if child == "mount" {
+				m, err := z.CheckMounted(r)
+				if err != nil {
+					z.RMR(p)
+					z.Answer(fqdn, child, []byte(""), "FAIL")
+					log.Print("[ERROR] Mapping error: ", err)
+					break
+				}
+				if !m {
+					z.RMR(p)
+					z.Answer(fqdn, child, []byte("Already mounted"), "FAIL")
+					log.Print("[ERROR] Mapping error: ", err)
+					break
+				}
 				std, err := r.MapDevice()
 				if err != nil {
 					z.RMR(p)
@@ -239,4 +252,37 @@ func (z ZooNode) WatchAnswer(fqdn string, t string) MountState {
 	}
 	z.RMR(p)
 	return ms
+}
+
+// CheckMounted Check already mounted devices
+func (z ZooNode) CheckMounted(r RBDDevice) (bool, error) {
+	nodes, _, err := z.Conn.Children(strings.Join([]string{z.Path, "cluster"}, "/"))
+	if err != nil {
+		return false, err
+	}
+
+	for _, node := range nodes {
+		statePath := strings.Join([]string{z.Path, "cluster", node, "state"}, "/")
+		var nodeState Node
+
+		state, _, err := z.Conn.Get(statePath)
+		if err != nil {
+			return false, err
+		}
+
+		err = json.Unmarshal(state, &nodeState)
+		if err != nil {
+			return false, err
+		}
+
+		if len(nodeState.Mounts) > 0 {
+			for _, mount := range nodeState.Mounts {
+				if mount.Image == r.Image && mount.Pool == r.Pool {
+					return false, nil
+				}
+			}
+		}
+	}
+
+	return true, nil
 }
