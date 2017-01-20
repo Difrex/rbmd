@@ -37,6 +37,13 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				log.Print("[ERROR] ", err)
 			}
 
+			if z.GetLeader() != "alive." {
+				z.RMR(p)
+				z.Answer(fqdn, child, []byte(""), "FAIL")
+				log.Print("[ERROR] Mapping error: ", err)
+				break
+			}
+
 			// 0) Check already mounted devices 1) Map RBD 2) Mount FS
 			if child == "mount" {
 				m, err := z.CheckMounted(r)
