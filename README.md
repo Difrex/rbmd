@@ -31,6 +31,7 @@ Current status: *development*, *testing*
             - [Example](#example)
         - [GET /metrics](#get-metrics)
             - [Example](#example)
+    - [Systemd](#systemd)
 - [AUTHORS](#authors)
 - [LICENSE](#license)
 
@@ -245,6 +246,23 @@ Return some metrics
   "mountstotal": 0,
   "cgocall": 1
 }
+```
+
+## Systemd
+
+Example unit
+```ini
+[Unit]
+Description=RBMD
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/rbmd -listen 0.0.0.0:9076 -ws 0.0.0.0:7690 -zk node1:2181,node2:2181,node3:2181
+KillMode=control-group
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
 ```
 
 # AUTHORS
