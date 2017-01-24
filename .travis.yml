@@ -4,9 +4,9 @@ python:
   - "1.7.x"
 
 before_install:
-  - GOPATH=$(pwd) go get github.com/gorilla/websocket
-  - GOPATH=$(pwd) go get github.com/samuel/go-zookeeper/zk
+  - go get github.com/gorilla/websocket
+  - go get github.com/samuel/go-zookeeper/zk
 
 # tests script
 script:
-  - GOPATH=$(pwd) go build
+  - go build
