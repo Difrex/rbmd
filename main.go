@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"rbmd"
+	"github.com/Difrex/rbmd/src/rbmd"
 	"strings"
 	// "log"
 )
