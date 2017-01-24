@@ -1,5 +1,7 @@
 # RBMD
 
+[![Build Status](https://travis-ci.org/Difrex/rbmd.svg?branch=master)](https://travis-ci.org/Difrex/rbmd)
+
 RBD mount wrapper cluster
 
 **NOT FOR PRODUCTION**
