@@ -116,7 +116,7 @@ Return JSON of node stats
 #### Example
 ```json
 {
-  "node": "difrex-mac.wargaming.net",
+  "node": "node.example.com",
   "ip": {
     "v4": [
       "169.254.156.1"
