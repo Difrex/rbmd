@@ -2,8 +2,9 @@ package main
 
 import (
 	"flag"
-	"github.com/Difrex/rbmd/src/rbmd"
 	"strings"
+
+	"github.com/Difrex/rbmd/rbmd"
 	// "log"
 )
 
