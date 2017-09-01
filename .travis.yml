@@ -11,4 +11,4 @@ before_install:
 
 # tests script
 script:
-  - go build
+  - go build -o _rbmd
