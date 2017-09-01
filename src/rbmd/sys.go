@@ -3,14 +3,14 @@ package rbmd
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
 	"net"
 	"os/exec"
 	"regexp"
 	"strings"
 	"syscall"
 	"time"
-	// "fmt"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 //ClusterStatus Quorum status struct
@@ -56,7 +56,7 @@ func GetMounts() []Mount {
 		mount := strings.Split(line, " ")
 		match, err := regexp.MatchString("^(/dev/rbd).*$", mount[0])
 		if err != nil {
-			log.Print("[ERROR] ", err)
+			log.Error(err.Error())
 		}
 		if match {
 			p := strings.Split(mount[0], "/")
@@ -169,45 +169,20 @@ type RBDDevice struct {
 //MapDevice map rbd block device
 func (r RBDDevice) MapDevice() ([]byte, error) {
 	image := strings.Join([]string{r.Pool, r.Image}, "/")
-	log.Print("[DEBUG] Mapping ", image)
+	log.Warn("[DEBUG] Mapping ", image)
 
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 
-	cmd := exec.Command("rbd", "map", image)
+	cmd := exec.Command("/usr/bin/rbd", "map", image)
 
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
 	if err != nil {
-		return []byte(stderr.String()), err
-	}
-
-	o := stdout.String()
-
-	if strings.HasSuffix(o, "\n") {
-		o = o[:len(o)-1]
-	}
-
-	return []byte(o), nil
-}
-
-//UnmapDevice unmap rbd block device
-func (r RBDDevice) UnmapDevice() ([]byte, error) {
-	log.Print("[DEBUG] Umapping ", r.Block)
-
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
-
-	cmd := exec.Command("rbd", "unmap", strings.Join([]string{"/dev/", r.Block}, ""))
-
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err := cmd.Run()
-	if err != nil {
-		return []byte(stderr.String()), err
+		log.Error(err.Error())
+		return []byte(strings.Join([]string{stderr.String(), stdout.String()}, " ")), err
 	}
 
 	o := stdout.String()
@@ -223,7 +198,7 @@ func (r RBDDevice) UnmapDevice() ([]byte, error) {
 func (r RBDDevice) MountFS(device string) error {
 	err := syscall.Mount(device, r.Mountpoint, r.Fstype, ParseMountOpts(r.Mountopts), "")
 	if err != nil {
-		log.Print("[DEBUG] sys 207 ", err)
+		log.Error("Cant mount ", device, err.Error())
 		return err
 	}
 
@@ -235,6 +210,7 @@ func ParseMountOpts(mountopts string) uintptr {
 	// Mount options map
 	opts := make(map[string]uintptr)
 	opts["ro"] = syscall.MS_RDONLY
+	opts["posixacl"] = syscall.MS_POSIXACL
 	opts["relatime"] = syscall.MS_RELATIME
 	opts["noatime"] = syscall.MS_NOATIME
 	opts["nosuid"] = syscall.MS_NOSUID
@@ -252,11 +228,38 @@ func ParseMountOpts(mountopts string) uintptr {
 	return 0
 }
 
+//UnmapDevice unmap rbd block device
+func (r RBDDevice) UnmapDevice() ([]byte, error) {
+	log.Print("[DEBUG] Umapping ", r.Block)
+
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	cmd := exec.Command("/usr/bin/rbd", "unmap", strings.Join([]string{"/dev/", r.Block}, ""))
+
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return []byte(stderr.String()), err
+	}
+
+	o := stdout.String()
+
+	if strings.HasSuffix(o, "\n") {
+		o = o[:len(o)-2]
+	}
+
+	return []byte(o), nil
+}
+
 //UnmountFS unmount file system
 func (r RBDDevice) UnmountFS() error {
 	err := syscall.Unmount(r.Mountpoint, 0)
+	log.Info("Try to umount ", r.Mountpoint)
 	if err != nil {
-		log.Print("[DEBUG] sys 207 ", err)
+		log.Error("Cant umount ", r.Mountpoint, err.Error())
 		return err
 	}
 

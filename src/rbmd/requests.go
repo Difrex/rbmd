@@ -2,14 +2,14 @@ package rbmd
 
 import (
 	"encoding/json"
-	"log"
 	"strings"
 	// "bytes"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/samuel/go-zookeeper/zk"
 )
 
-//RequestWatch watch for mount/umount requests
+// RequestWatch watch for mount/umount requests
 func (z ZooNode) RequestWatch(fqdn string) {
 	requestsPath := strings.Join([]string{z.Path, "cluster", fqdn, "requests"}, "/")
 	_, _, ch, err := z.Conn.ChildrenW(requestsPath)
@@ -34,13 +34,12 @@ func (z ZooNode) RequestWatch(fqdn string) {
 			var r RBDDevice
 			err = json.Unmarshal(request, &r)
 			if err != nil {
-				log.Print("[ERROR] ", err)
+				log.Error("[ERROR] ", err.Error())
 			}
 
-			if z.GetLeader() != "alive." {
+			if z.GetQuorumHealth() != "alive." {
 				z.RMR(p)
-				z.Answer(fqdn, child, []byte(""), "FAIL")
-				log.Print("[ERROR] Mapping error: ", err)
+				z.Answer(fqdn, child, []byte(""), "FAIL: cluster not alive")
 				break
 			}
 
@@ -50,20 +49,20 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				if err != nil {
 					z.RMR(p)
 					z.Answer(fqdn, child, []byte(""), "FAIL")
-					log.Print("[ERROR] Mapping error: ", err)
+					log.Print("[ERROR] Mapping error: ", err.Error())
 					break
 				}
 				if !m {
 					z.RMR(p)
 					z.Answer(fqdn, child, []byte("Already mounted"), "FAIL")
-					log.Print("[ERROR] Mapping error: ", err)
+					log.Print("[ERROR] Mapping error: ", err.Error())
 					break
 				}
 				std, err := r.MapDevice()
 				if err != nil {
 					z.RMR(p)
 					z.Answer(fqdn, child, std, "FAIL")
-					log.Print("[ERROR] Mapping error: ", string(std), err)
+					log.Print("[ERROR] Mapping error: ", string(std), err.Error())
 					break
 				}
 				err = r.MountFS(string(std))
@@ -71,7 +70,7 @@ func (z ZooNode) RequestWatch(fqdn string) {
 					r.UnmapDevice()
 					z.RMR(p)
 					z.Answer(fqdn, child, std, "FAIL")
-					log.Print("[ERROR] Mount filesystem error: ", err)
+					log.Print("[ERROR] Mount filesystem error: ", err.Error())
 					break
 				}
 				z.Answer(fqdn, child, std, "OK")

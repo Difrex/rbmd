@@ -4,11 +4,11 @@
 
 RBD mount wrapper cluster
 
-**NOT FOR PRODUCTION**
+**ALLOW FOR STAGING**
 
 Current status: *development*, *testing*
 
-**NOT FOR PRODUCTION**
+**ALLOW FOR STAGING**
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-generate-toc again -->
 **Table of Contents**
@@ -216,7 +216,7 @@ On success
 On failure
 ```json
 {
-    "state": "FAIL"
+    "state": "FAIL",
     "message": "Not found"
 }
 ```
@@ -265,6 +265,12 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 ```
+
+# Troubleshooting
+
+## Umount request is stuck after deadly.
+
+Remove Zk node */rbmd/cluster/node.fqdn/requests/umount*
 
 # AUTHORS
 
