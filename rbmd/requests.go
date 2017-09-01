@@ -14,30 +14,31 @@ func (z ZooNode) RequestWatch(fqdn string) {
 	requestsPath := strings.Join([]string{z.Path, "cluster", fqdn, "requests"}, "/")
 	_, _, ch, err := z.Conn.ChildrenW(requestsPath)
 	if err != nil {
-		log.Print("[zk ERROR] ", err)
+		log.Error("[zk ERROR] ", err.Error())
 	}
 
 	for {
 		req := <-ch
-		log.Print("[DEBUG] ch path ", req.Path)
+		log.Info("ch path ", req.Path)
 		childrens, _, err := z.Conn.Children(requestsPath)
 		if err != nil {
+			log.Error(err.Error())
 			break
 		}
 		for _, child := range childrens {
 			p := strings.Join([]string{req.Path, child}, "/")
 			request, _, err := z.Conn.Get(p)
 			if err != nil {
-				log.Print("[zk ERROR] ", err)
+				log.Error("[zk] ", err.Error())
 			}
 
 			var r RBDDevice
 			err = json.Unmarshal(request, &r)
 			if err != nil {
-				log.Error("[ERROR] ", err.Error())
+				log.Error("", err.Error())
 			}
 
-			if z.GetQuorumHealth() != "alive." {
+			if z.GetQuorumHealth() != "alive." && child != "resolve" {
 				z.RMR(p)
 				z.Answer(fqdn, child, []byte(""), "FAIL: cluster not alive")
 				break
@@ -92,12 +93,13 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				}
 				z.Answer(fqdn, child, std, "OK")
 			} else if child == "resolve" && z.GetLeader() == fqdn {
+				log.Warn("Got resolve request ", r.Node)
 				if err := z.Resolve(fqdn); err != nil {
-					log.Print("[ERROR] ", err)
+					log.Error(err.Error())
 					z.RMR(p)
 				}
 			} else {
-				log.Print("[ERROR] Unknown request: ", child)
+				log.Error("Unknown request: ", child)
 				z.RMR(p)
 			}
 			z.RMR(p)
@@ -106,21 +108,29 @@ func (z ZooNode) RequestWatch(fqdn string) {
 	}
 }
 
+//Resolve resolve request
+type Resolve struct {
+	Node string `json:"node"`
+}
+
 //Resolve delete node from quorum
 func (z ZooNode) Resolve(fqdn string) error {
 	resolvePath := strings.Join([]string{z.Path, "cluster", fqdn, "requests", "resolve"}, "/")
 
 	r, _, err := z.Conn.Get(resolvePath)
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
 	var res Resolve
 	if err := json.Unmarshal(r, &res); err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
 	deadlyNodePath := strings.Join([]string{z.Path, "cluster", res.Node}, "/")
+	log.Warn("Trying resolve. Remove ", res.Node, " from quorum")
 	z.RMR(resolvePath)
 	z.RMR(deadlyNodePath)
 
@@ -134,14 +144,16 @@ func (z ZooNode) ResolveRequest(r Resolve) error {
 
 	jsReq, err := json.Marshal(r)
 	if err != nil {
+		log.Error(err.Error())
 		return err
 	}
 
-	_, err = z.Conn.Create(resolvePath, jsReq, 0, zk.WorldACL(zk.PermAll))
+	z.EnsureZooPath(resolvePath)
+	_, err = z.Conn.Set(resolvePath, jsReq, -1)
 	if err != nil {
-		_, err := z.Conn.Set(resolvePath, jsReq, -1)
+		_, err := z.Conn.Create(resolvePath, jsReq, 0, zk.WorldACL(zk.PermAll))
 		if err != nil {
-			log.Print("[zk ERROR] ", err)
+			log.Error("Cant create resolve request node ", err.Error())
 			return err
 		}
 	}

@@ -2,11 +2,11 @@ package rbmd
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/gorilla/websocket"
 )
 
@@ -80,18 +80,14 @@ func (wr wrr) UmountHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(state)
 }
 
-//Resolve resolve request
-type Resolve struct {
-	Node string `json:"node"`
-}
-
 //ResolveHandler resolve `deadly.` state. /resolve location
-func (wr wrr) ResoleHandler(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
+func (wr wrr) ResolveHandler(w http.ResponseWriter, r *http.Request) {
 	var res Resolve
+
+	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&res)
-	var msE []byte
 	if err != nil {
+		var msE []byte
 		msE, _ = json.Marshal(MountState{"FAIL", "JSON parse failure"})
 		w.WriteHeader(500)
 		w.Write(msE)
@@ -99,7 +95,9 @@ func (wr wrr) ResoleHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := wr.z.ResolveRequest(res); err != nil {
+		log.Error(err.Error())
 		w.WriteHeader(500)
+		return
 	}
 
 	w.WriteHeader(200)
@@ -158,7 +156,7 @@ func (s ServerConf) ServeHTTP(z ZooNode, fqdn string) {
 	http.HandleFunc("/v1/umount", wr.UmountHandler)
 
 	// Umount volume. Accept JSON. Return JSON.
-	http.HandleFunc("/v1/resolve", wr.ResoleHandler)
+	http.HandleFunc("/v1/resolve", wr.ResolveHandler)
 
 	server := &http.Server{
 		Addr: s.Addr,
@@ -178,26 +176,29 @@ func (wr Writer) WriteStatusWs(w http.ResponseWriter, r *http.Request) {
 	c, err := wr.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Print("[Ws ERROR] Upgrade: ", err)
+		defer c.Close()
+		return
 	}
 
 	mt, _, err := c.ReadMessage()
 	if err != nil {
 		log.Print("[Ws ERROR] Read error: ", err)
 		// break
+		defer c.Close()
 		return
 	}
 
-	go func() {
-		for {
-			err = c.WriteMessage(mt, wr.z.GetState())
-			if err != nil {
-				log.Print("[Ws ERROR] Write err: ", err)
-				defer c.Close()
-				break
-			}
-			time.Sleep(time.Duration(1) * time.Second)
+	// go func(c *websocket.Conn, mt int) {
+	for {
+		err = c.WriteMessage(mt, wr.z.GetState())
+		if err != nil {
+			log.Print("[Ws ERROR] Write err: ", err)
+			defer c.Close()
+			return
 		}
-	}()
+		time.Sleep(time.Duration(1) * time.Second)
+	}
+	// }(c, mt)
 }
 
 //ServeWebSockets start websockets server

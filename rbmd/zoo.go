@@ -1,9 +1,10 @@
 package rbmd
 
 import (
-	"github.com/samuel/go-zookeeper/zk"
 	"log"
 	"strings"
+
+	"github.com/samuel/go-zookeeper/zk"
 	// "encoding/json"
 )
 
@@ -15,13 +16,13 @@ type ZooNode struct {
 }
 
 //EnsureZooPath create zookeeper path
-func (z ZooNode) EnsureZooPath(node string) (string, error) {
+func (z ZooNode) EnsureZooPath(path string) (string, error) {
+	path = strings.Join([]string{z.Path, path}, "/")
+
 	flag := int32(0)
 	acl := zk.WorldACL(zk.PermAll)
 
-	zoopath := strings.Join([]string{z.Path, "/", node}, "")
-	s := strings.Split(zoopath, "/")
-
+	s := strings.Split(path, "/")
 	var p []string
 	var fullnodepath string
 
@@ -31,7 +32,10 @@ func (z ZooNode) EnsureZooPath(node string) (string, error) {
 
 	for i := 0; i < len(p); i++ {
 		fullnodepath = strings.Join([]string{fullnodepath, p[i]}, "")
-		z.Conn.Create(fullnodepath, []byte(""), flag, acl)
+		exists, _, _ := z.Conn.Exists(fullnodepath)
+		if !exists {
+			z.Conn.Create(fullnodepath, []byte(""), flag, acl)
+		}
 	}
 
 	return fullnodepath, nil
