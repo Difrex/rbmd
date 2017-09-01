@@ -19,19 +19,19 @@ Current status: *development*, *testing*
         - [Example](#example)
     - [Build](#build)
     - [API](#api)
-        - [GET /status](#get-status)
+        - [GET /v1/status](#get-v1status)
             - [Example](#example)
-        - [GET /node](#get-node)
+        - [GET /v1/node](#get-v1node)
             - [Example](#example)
-        - [GET /health](#get-health)
+        - [GET /v1/health](#get-v1health)
             - [Example](#example)
-        - [POST /mount](#post-mount)
+        - [POST /v1/mount](#post-v1mount)
             - [Example](#example)
-        - [POST /umount](#post-umount)
+        - [POST /v1/umount](#post-v1umount)
             - [Example](#example)
-        - [POST /resolve](#post-resolve)
+        - [POST /v1/resolve](#post-v1resolve)
             - [Example](#example)
-        - [GET /metrics](#get-metrics)
+        - [GET /v1/metrics](#get-v1metrics)
             - [Example](#example)
     - [Systemd](#systemd)
 - [Troubleshooting](#troubleshooting)
@@ -81,7 +81,7 @@ GOPATH=$(pwd) go build
 
 ## API
 
-### GET /status
+### GET /v1/status
 
 Return JSON of quorum status
 
@@ -109,7 +109,7 @@ Return JSON of quorum status
 }
 ```
 
-### GET /node
+### GET /v1/node
 
 Return JSON of node stats 
 
@@ -130,7 +130,7 @@ Return JSON of node stats
 }
 ```
 
-### GET /health
+### GET /v1/health
 
 Return string with quorum health check result
 
@@ -146,7 +146,7 @@ curl 127.0.0.1:9076/health
 alive.
 ```
 
-### POST /mount
+### POST /v1/mount
 
 Map rbd image and mount it
 
@@ -190,7 +190,7 @@ On failure
 }
 ```
 
-### POST /umount
+### POST /v1/umount
 
 Unmount filesystem and unmap RBD device
 
@@ -223,7 +223,7 @@ On failure
 }
 ```
 
-### POST /resolve
+### POST /v1/resolve
 
 Remove deadly node from quorum.
 
@@ -236,7 +236,7 @@ Accept JSON
 }
 ```
 
-### GET /metrics
+### GET /v1/metrics
 
 Return some metrics
 
