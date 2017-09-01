@@ -34,6 +34,8 @@ Current status: *development*, *testing*
         - [GET /metrics](#get-metrics)
             - [Example](#example)
     - [Systemd](#systemd)
+- [Troubleshooting](#troubleshooting)
+    - [Umount request is stuck after deadly.](#umount-request-is-stuck-after-deadly)
 - [AUTHORS](#authors)
 - [LICENSE](#license)
 
