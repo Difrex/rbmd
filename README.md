@@ -4,8 +4,6 @@
 
 ![logo](/img/logo.png)
 
-RBD mount wrapper cluster.
-
 RBDM is a rbd mount cluster. It can check already mounted images and prevent creating another block device.
 
 It's can map/unmap and mount/umount.

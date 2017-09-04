@@ -2,9 +2,10 @@ package rbmd
 
 import (
 	"encoding/json"
-	"log"
 	"strings"
 	"time"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 //Quorum quorum information
@@ -14,6 +15,9 @@ type Quorum struct {
 	Health       string `json:"health"`
 	DeadlyReason Node   `json:"deadlyreason"`
 }
+
+// QuorumMounts map of quorum mounts
+type QuorumMounts map[string][]Mount
 
 //GetQuorumHealth return health check of cluster state
 func (z ZooNode) GetQuorumHealth() string {
@@ -86,28 +90,46 @@ func (z ZooNode) CheckAndSetHealth(childrens []string) {
 //UpdateQuorum set current cluster state
 func (z ZooNode) UpdateQuorum(childrens []string) {
 	quorumStatePath := strings.Join([]string{z.Path, "/log/quorum"}, "")
+	quorumMountsPath := strings.Join([]string{z.Path, "/log/mounts"}, "")
 	z.EnsureZooPath("log/quorum")
+	z.EnsureZooPath("log/mounts")
 
 	// Get nodes statuses
 	var quorum Quorum
+	var mounts QuorumMounts
+	mounts = make(map[string][]Mount)
 	for _, child := range childrens {
 		var node Node
 		childPath := strings.Join([]string{z.Path, "/cluster/", child, "/state"}, "")
 		data, _, _ := z.Conn.Get(childPath)
 		json.Unmarshal(data, &node)
 		quorum.Quorum = append(quorum.Quorum, node)
+		// Populate cluster mounts
+		if len(node.Mounts) > 0 {
+			mounts[child] = node.Mounts
+		}
 	}
 
 	quorum.Health = z.GetQuorumHealth()
 	quorum.Leader = z.GetLeader()
+
+	// get zk stats of mounts
 	_, zoStat, _ := z.Conn.Get(quorumStatePath)
 	q, err := json.Marshal(quorum)
 	if err != nil {
-		log.Print("[ERROR] ", err)
+		log.Error(err.Error())
+	}
+
+	// Get zk stats of mounts
+	_, zoMStat, _ := z.Conn.Get(quorumMountsPath)
+	m, err := json.Marshal(mounts)
+	if err != nil {
+		log.Error(err.Error())
 	}
 
 	// Update
 	// log.Print("[DEBUG] Updating quorum")
+	z.Conn.Set(quorumMountsPath, m, zoMStat.Version)
 	z.Conn.Set(quorumStatePath, q, zoStat.Version)
 }
 

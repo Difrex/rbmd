@@ -62,12 +62,12 @@ func GetMounts() []Mount {
 			p := strings.Split(mount[0], "/")
 			pool, image := GetRBDPool(p[len(p)-1])
 			mounts = append(mounts, Mount{
-				mount[1],
-				mount[3],
-				mount[2],
-				pool,
-				image,
-				p[len(p)-1],
+				Mountpoint: mount[1],
+				Mountopts:  mount[3],
+				Fstype:     mount[2],
+				Pool:       pool,
+				Image:      image,
+				Block:      p[len(p)-1],
 			})
 		}
 	}
