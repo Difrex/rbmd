@@ -73,13 +73,7 @@ Usage of ./rbmd:
 
 ## Build
 
-Required Go > 1.6
-
-```
-git clone https://github.com/rbmd/rbmd.git && cd rbmd
-GOPATH=$(pwd) go get -t -v ./...
-GOPATH=$(pwd) go build
-```
+Run [build.sh](build.sh) script. It's required docker.
 
 ## API
 
