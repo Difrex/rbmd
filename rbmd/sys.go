@@ -92,7 +92,10 @@ func GetRBDPool(device string) (string, string) {
 		log.Fatal("[ERROR] Read failure ", err)
 	}
 
-	return string(pool), string(image)
+	p := strings.Trim(string(pool), "\n")
+	i := strings.Trim(string(image), "\n")
+
+	return p, i
 }
 
 //GetMyIPs Exclude 127.0.0.1
@@ -188,7 +191,7 @@ func (r RBDDevice) MapDevice() ([]byte, error) {
 	o := stdout.String()
 
 	if strings.HasSuffix(o, "\n") {
-		o = o[:len(o)-2]
+		o = o[:len(o)-1]
 	}
 
 	return []byte(o), nil

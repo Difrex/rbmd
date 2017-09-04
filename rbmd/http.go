@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -175,30 +176,49 @@ func (wr Writer) WriteStatusWs(w http.ResponseWriter, r *http.Request) {
 
 	c, err := wr.Upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("[Ws ERROR] Upgrade: ", err)
-		defer c.Close()
+		log.Error("[Ws] Upgrade: ", err.Error())
+		c.Close()
 		return
 	}
 
 	mt, _, err := c.ReadMessage()
 	if err != nil {
-		log.Print("[Ws ERROR] Read error: ", err)
+		log.Error("[Ws] Read error: ", err.Error())
 		// break
-		defer c.Close()
+		c.Close()
 		return
 	}
 
-	// go func(c *websocket.Conn, mt int) {
+	// Write first state message after upgrade
+	err = c.WriteMessage(mt, wr.z.GetState())
+	if err != nil {
+		log.Error("[Ws] Write err: ", err.Error())
+		c.Close()
+		return
+	}
+
+	// Add watcher to cluster log
+	// logPath := strings.Join([]string{wr.z.Path, "log", "quorum"}, "/")
+	// log.Info(logPath)
+	// _, _, ch, err := wr.z.Conn.ChildrenW(logPath)
+	// if err != nil {
+	// 	log.Error("Cant add watcher", err.Error())
+	// 	c.Close()
+	// 	return
+	// }
+
 	for {
+		// log.Info("Run sockets loop")
+		// st := <-ch
+		// log.Info("got zk event ", st.Server)
+		time.Sleep(time.Second * 5)
 		err = c.WriteMessage(mt, wr.z.GetState())
 		if err != nil {
-			log.Print("[Ws ERROR] Write err: ", err)
+			log.Error("[Ws] Write err: ", err.Error())
 			defer c.Close()
 			return
 		}
-		time.Sleep(time.Duration(1) * time.Second)
 	}
-	// }(c, mt)
 }
 
 //ServeWebSockets start websockets server

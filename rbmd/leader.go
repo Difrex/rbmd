@@ -235,8 +235,7 @@ func (z ZooNode) DestroyNode(fqdn string) ([]string, string) {
 	return childrens, strings.Join(message, "")
 }
 
-//CheckMounts ...
-// Check mounts on down node
+// CheckMounts on down node
 func CheckMounts(nodeStat []byte) (bool, []string) {
 	var node Node
 

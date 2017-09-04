@@ -40,7 +40,7 @@ func (z ZooNode) RequestWatch(fqdn string) {
 
 			if z.GetQuorumHealth() != "alive." && child != "resolve" {
 				z.RMR(p)
-				z.Answer(fqdn, child, []byte(""), "FAIL: cluster not alive")
+				z.Answer(fqdn, child, []byte(""), "FAIL: cluster not alive.")
 				break
 			}
 
@@ -49,21 +49,21 @@ func (z ZooNode) RequestWatch(fqdn string) {
 				m, err := z.CheckMounted(r)
 				if err != nil {
 					z.RMR(p)
-					z.Answer(fqdn, child, []byte(""), "FAIL")
-					log.Print("[ERROR] Mapping error: ", err.Error())
+					z.Answer(fqdn, child, []byte(err.Error()), "FAIL")
+					log.Error("[ERROR] Mapping error: ", err.Error())
 					break
 				}
 				if !m {
 					z.RMR(p)
 					z.Answer(fqdn, child, []byte("Already mounted"), "FAIL")
-					log.Print("[ERROR] Mapping error: ", err.Error())
-					break
+					log.Error("[ERROR] Mapping error: Already mounted")
+					return
 				}
 				std, err := r.MapDevice()
 				if err != nil {
 					z.RMR(p)
 					z.Answer(fqdn, child, std, "FAIL")
-					log.Print("[ERROR] Mapping error: ", string(std), err.Error())
+					log.Error("[ERROR] Mapping error: ", string(std), err.Error())
 					break
 				}
 				err = r.MountFS(string(std))
@@ -168,15 +168,15 @@ func (z ZooNode) Answer(fqdn string, req string, stderr []byte, t string) {
 	answer := MountState{t, string(stderr)}
 	answerJSON, err := json.Marshal(answer)
 	if err != nil {
-		log.Print("[ERROR] ", err)
+		log.Error(err.Error())
 	}
 
 	_, err = z.Conn.Create(answerPath, answerJSON, 0, zk.WorldACL(zk.PermAll))
 	if err != nil {
-		log.Print("[zk ERROR] ", err)
+		log.Error("[zk] ", err.Error())
 		_, err := z.Conn.Set(answerPath, answerJSON, -1)
 		if err != nil {
-			log.Print("[zk ERROR] ", err)
+			log.Error("[zk] ", err.Error())
 		}
 	}
 }
@@ -223,11 +223,11 @@ func (z ZooNode) UmountRequest(r RBDDevice) error {
 //WatchAnswer watch for answer
 func (z ZooNode) WatchAnswer(fqdn string, t string) MountState {
 	answersPath := strings.Join([]string{z.Path, "cluster", fqdn, "answers"}, "/")
-	log.Print("[DEBUG] ", answersPath)
+	log.Debug(answersPath)
 	_, _, ch, err := z.Conn.ChildrenW(answersPath)
 	if err != nil {
-		log.Print("[zk ERROR] 107 ", err)
-		return MountState{"FAIL", "Zk error"}
+		log.Error("[zk] ", err.Error())
+		return MountState{"FAIL", "Zk error " + err.Error()}
 	}
 
 	var ms MountState
@@ -280,8 +280,8 @@ func (z ZooNode) CheckMounted(r RBDDevice) (bool, error) {
 	}
 
 	for _, node := range nodes {
-		statePath := strings.Join([]string{z.Path, "cluster", node, "state"}, "/")
 		var nodeState Node
+		statePath := strings.Join([]string{z.Path, "cluster", node, "state"}, "/")
 
 		state, _, err := z.Conn.Get(statePath)
 		if err != nil {
