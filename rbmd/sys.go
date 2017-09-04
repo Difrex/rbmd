@@ -188,7 +188,7 @@ func (r RBDDevice) MapDevice() ([]byte, error) {
 	o := stdout.String()
 
 	if strings.HasSuffix(o, "\n") {
-		o = o[:len(o)-1]
+		o = o[:len(o)-2]
 	}
 
 	return []byte(o), nil

@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/Difrex/rbmd.svg?branch=master)](https://travis-ci.org/Difrex/rbmd)
 
+![logo](/img/logo.png)
+
 RBD mount wrapper cluster
 
 **ALLOW FOR STAGING**
